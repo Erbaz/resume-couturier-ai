@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, UploadFile, File
 from pydantic import BaseModel
 from constants.latex_templates import templates
 from utils.latex import latex_to_pdf
+from utils.parsing import parse_to_markdown
+from utils.evaluator import ats_score_evaluator
 
 class GenerateResumeRequestBody(BaseModel):
     user_info: str
@@ -24,8 +26,16 @@ async def get_latex_templates():
     return response
 
 @router.post("/parse")
-async def parse_resume():
-    return {"message": "placeholder"}
+async def parse_resume(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(('.pdf', '.docx')):
+        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are supported")
+    
+    try:
+        content = await file.read()
+        markdown_str = parse_to_markdown(content, file.filename)
+        return {"markdown": markdown_str}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse document: {str(e)}")
 
 @router.post("/generate/{template_id}")
 async def generate_resume(template_id: str, body: GenerateResumeRequestBody):
@@ -46,7 +56,13 @@ async def generate_resume(template_id: str, body: GenerateResumeRequestBody):
     if not pdf_bytes:
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
         
-    return Response(content=pdf_bytes, media_type="application/pdf")
+    score = ats_score_evaluator(pdf_bytes, body.job_desc)
+    headers = {}
+    if score:
+        headers["X-ATS-Score-Found"] = "true"
+        print(f"ATS Score Evaluation:\n{score}")
+        
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
 @router.post("/score")
 async def score_resume():

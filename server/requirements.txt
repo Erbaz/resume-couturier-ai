@@ -1,3 +1,5 @@
 fastapi
 uvicorn
-pdflatex
+ats-resume-scorer
+docling
+python-multipart

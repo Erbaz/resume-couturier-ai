@@ -2,3 +2,8 @@ __pycache__/
 .venv/
 .pytest_cache/
 *.pyc
+
+.git
+.gitignore
+.env
+*.log

@@ -22,6 +22,14 @@ COPY requirements.txt .
 # Install any needed Python packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Pre-download docling AI models so they are baked into the image
+RUN python -c "from docling.document_converter import DocumentConverter; DocumentConverter()"
+
 # Copy the rest of the application code into the container
 COPY . .
 
