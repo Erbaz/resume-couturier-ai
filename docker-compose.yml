@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
+      # Avoid overwriting node_modules or dependencies if there were any, though here it's pip
+      # We just mount the code into /app where the working dir is.
+    environment:
+      # If using watching utilities that rely on polling (like webpack, or uvicorn's watchfiles falling back to polling)
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    # Override standard CMD to include --reload for hot reloading
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

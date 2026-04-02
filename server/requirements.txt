@@ -3,3 +3,6 @@ uvicorn
 ats-resume-scorer
 docling
 python-multipart
+google-auth
+requests
+python-dotenv

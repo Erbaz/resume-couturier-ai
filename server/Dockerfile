@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install any needed Python packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=2000 --no-cache-dir -r requirements.txt
 
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
