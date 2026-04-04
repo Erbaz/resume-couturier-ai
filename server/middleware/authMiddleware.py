@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import requests
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +20,7 @@ def verify_google_oauth_token(credentials: HTTPAuthorizationCredentials = Depend
     # google.oauth2.id_token.verify_oauth2_token
     tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?access_token={token}"
     response = requests.get(tokeninfo_url)
-    
+
     if response.status_code != 200:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,11 +30,9 @@ def verify_google_oauth_token(credentials: HTTPAuthorizationCredentials = Depend
         
     token_info = response.json()
     
-    # Security Note: To be fully secure, you should verify if token_info['aud'] 
-    # matches your Google Client ID, ensuring the token was minted specifically for your app.
     expected_client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+    
     if token_info.get("aud") != expected_client_id:
         raise HTTPException(status_code=401, detail="Token was not issued for this application.")
 
-    # We return the token_info which contains data like user's email, sub (user ID), etc.
     return token_info
