@@ -3,8 +3,9 @@
   "name": "Resume Couturier AI",
   "version": "1.0",
   "description": "Chrome extension for Resume Couturier AI",
-  "action": {
-    "default_popup": "popup.html"
+  "action": {},
+  "side_panel": {
+    "default_path": "popup.html"
   },
   "background": {
     "service_worker": "background.js"
@@ -13,7 +14,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "identity"
+    "identity",
+    "sidePanel"
   ],
   "host_permissions": [
     "http://127.0.0.1:8000/*",

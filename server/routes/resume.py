@@ -50,8 +50,8 @@ async def parse_resume(
 
     try:
         content = await file.read()
-        markdown_str = parse_to_markdown(content, file.filename)
-        return {"markdown": markdown_str}
+        parsed_text = parse_to_markdown(content, file.filename)
+        return {"parsed_text": parsed_text}
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to parse document: {str(e)}"
