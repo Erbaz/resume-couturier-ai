@@ -15,6 +15,10 @@
     "scripting",
     "identity"
   ],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*"
+  ],
   "oauth2": {
     "client_id": "104414854681-lj7j07dc4u77tivp4e3idbvap3ulnme7.apps.googleusercontent.com",
     "scopes": [
