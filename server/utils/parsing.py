@@ -1,21 +1,33 @@
+import io
 import os
-import tempfile
-from docling.document_converter import DocumentConverter
+from pypdf import PdfReader
+from docx import Document
+
+
 def parse_to_markdown(file_bytes: bytes, filename: str) -> str:
     """
-    Parses a PDF or DOCX file (provided as bytes) and returns its content as a Markdown string using docling.
+    Parses a PDF or DOCX file (provided as bytes) and returns a Markdown-like plain text body.
     """
-    ext = os.path.splitext(filename)[1]
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
-        temp_file.write(file_bytes)
-        temp_path = temp_file.name
+    ext = os.path.splitext(filename.lower())[1]
 
-    try:
-        converter = DocumentConverter()
-        result = converter.convert_single(temp_path)
-        markdown_text = result.output.export_to_markdown()
-        return markdown_text
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    if ext == ".pdf":
+        reader = PdfReader(io.BytesIO(file_bytes))
+        pages = []
+        for page in reader.pages:
+            text = (page.extract_text() or "").strip()
+            if text:
+                pages.append(text)
+        print(" ----parsed pdf text----")
+        print("\n\n".join(pages))
+        return "\n\n".join(pages)
+
+    if ext == ".docx":
+        doc = Document(io.BytesIO(file_bytes))
+        paragraphs = []
+        for paragraph in doc.paragraphs:
+            text = paragraph.text.strip()
+            if text:
+                paragraphs.append(text)
+        return "\n\n".join(paragraphs)
+
+    raise ValueError(f"Unsupported file extension: {ext}")

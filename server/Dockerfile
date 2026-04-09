@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-fonts-recommended \
     texlive-latex-extra \
     texlive-fonts-extra \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,12 +24,7 @@ COPY requirements.txt .
 RUN pip install --default-timeout=2000 --no-cache-dir -r requirements.txt
 
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-    
-# Pre-download docling AI models so they are baked into the image
-RUN python -c "from docling.document_converter import DocumentConverter; DocumentConverter()"
+RUN python -m spacy download en_core_web_sm
 
 # Copy the rest of the application code into the container
 COPY . .
