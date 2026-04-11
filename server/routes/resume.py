@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from constants.latex_templates import templates
 from utils.latex import latex_to_pdf
-from utils.parsing import parse_to_markdown
+from utils.parsing import parse_file
 from utils.evaluator import ats_score_evaluator
 from middleware.authMiddleware import verify_google_oauth_token, security
 import requests
@@ -50,7 +50,7 @@ async def parse_resume(
 
     try:
         content = await file.read()
-        parsed_text = parse_to_markdown(content, file.filename)
+        parsed_text = parse_file(content, file.filename)
         return {"parsed_text": parsed_text}
     except Exception as e:
         raise HTTPException(

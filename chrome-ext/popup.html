@@ -258,6 +258,15 @@
           <option value="gemini-2.5-flash" selected>gemini-2.5-flash</option>
           <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
         </select>
+
+        <div id="jobDescriptionContainer" style="margin-top: 12px; margin-bottom: 12px;">
+          <div class="section-title" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <span>Detected job description</span>
+            <span id="jdStatus" style="font-weight: normal; font-size: 11px; color: #666;"></span>
+          </div>
+          <textarea id="jobDescriptionText" placeholder="Extracting or paste job description here..." style="width: 100%; height: 80px; font-size: 13px; font-family: inherit; resize: vertical; padding: 6px; border: 1px solid #ccc; border-radius: 6px;"></textarea>
+        </div>
+
         <div id="templatesStatus"></div>
         <div id="templatesList"></div>
         <button type="button" class="primary" id="tailorBtn" disabled>

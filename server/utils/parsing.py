@@ -4,7 +4,7 @@ from pypdf import PdfReader
 from docx import Document
 
 
-def parse_to_markdown(file_bytes: bytes, filename: str) -> str:
+def parse_file(file_bytes: bytes, filename: str) -> str:
     """
     Parses a PDF or DOCX file (provided as bytes) and returns a Markdown-like plain text body.
     """

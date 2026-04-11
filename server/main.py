@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from routes import auth, resume, scrape
+from routes import auth, resume
 
 app = FastAPI(title="Resume Couturier API")
 
@@ -13,4 +13,3 @@ if os.path.isdir(assets_dir):
 
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(resume.router, prefix="/resume", tags=["Resume"])
-app.include_router(scrape.router, tags=["Scraper"])

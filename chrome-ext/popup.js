@@ -1,6 +1,7 @@
 /** Base URL for the Resume Couturier API (same origin as FastAPI). */
 const API_BASE = 'http://127.0.0.1:8000';
 const PARSED_RESUME_STORAGE_KEY = 'parsedResumeText';
+const CAPTURED_JOB_DESCRIPTION_KEY = 'capturedJobDescription';
 const GEMINI_MODEL_STORAGE_KEY = 'geminiModel';
 const GEMINI_MODEL_OPTIONS = [
   'gemini-3.1-pro-preview',
@@ -11,6 +12,99 @@ const GEMINI_MODEL_OPTIONS = [
   'gemini-2.5-flash-lite',
 ];
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+
+const JOB_DESCRIPTION_HOST_MAP = {
+  'linkedin.com': [
+    { identifier: 'componentKey', valuePattern: '^JobDetails_AboutTheJob_\\d+$' },
+    { tag: 'div', classes: ['description__text', 'description__text--rich'] }
+  ],
+  'glassdoor.com': [{ tag: 'div', classes: ['JobDetails_jobDescription__uW_fK'] }],
+};
+
+function normalizeJobPortalHost(hostname) {
+  const h = hostname.toLowerCase();
+  if (h === 'linkedin.com' || h.endsWith('.linkedin.com')) {
+    return 'linkedin.com';
+  }
+  if (h === 'glassdoor.com' || h.endsWith('.glassdoor.com')) {
+    return 'glassdoor.com';
+  }
+  return null;
+}
+
+function extractJobDescriptionInPage(selectorList) {
+  for (const spec of selectorList) {
+    if (spec.identifier && spec.valuePattern) {
+      const regex = new RegExp(spec.valuePattern);
+      const nodes = document.getElementsByTagName(spec.tag || '*');
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        let val = el.getAttribute(spec.identifier);
+        if (val == null && spec.identifier in el) {
+          val = el[spec.identifier];
+        }
+        if (typeof val === 'string' && regex.test(val)) {
+          return {
+            ok: true,
+            html: el.innerHTML,
+            text: (el.innerText || '').trim(),
+          };
+        }
+      }
+    } else {
+      const tag = spec.tag || 'div';
+      const required = spec.classes || [];
+      const nodes = document.getElementsByTagName(tag);
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        const cl = el.classList;
+        let all = true;
+        for (let j = 0; j < required.length; j++) {
+          if (!cl.contains(required[j])) {
+            all = false;
+            break;
+          }
+        }
+        if (all) {
+          return {
+            ok: true,
+            html: el.innerHTML,
+            text: (el.innerText || '').trim(),
+          };
+        }
+      }
+    }
+  }
+  return { ok: false, html: '', text: '' };
+}
+
+function queryActiveTab() {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(tabs?.[0] || null);
+    });
+  });
+}
+
+
+function getStoredCapturedJobDescription() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([CAPTURED_JOB_DESCRIPTION_KEY], (result) => {
+      if (chrome.runtime.lastError) {
+        console.error('storage.get job desc:', chrome.runtime.lastError.message);
+        resolve(null);
+        return;
+      }
+      resolve(result[CAPTURED_JOB_DESCRIPTION_KEY] || null);
+    });
+  });
+}
+
+function saveCapturedJobDescription(record) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [CAPTURED_JOB_DESCRIPTION_KEY]: record }, resolve);
+  });
+}
 
 const authSection = document.getElementById('authSection');
 const mainSection = document.getElementById('mainSection');
@@ -24,6 +118,9 @@ const parseBtn = document.getElementById('parseBtn');
 const parseStatus = document.getElementById('parseStatus');
 
 const templateSection = document.getElementById('templateSection');
+const jobDescriptionContainer = document.getElementById('jobDescriptionContainer');
+const jobDescriptionText = document.getElementById('jobDescriptionText');
+const jdStatus = document.getElementById('jdStatus');
 const templatesStatus = document.getElementById('templatesStatus');
 const templatesList = document.getElementById('templatesList');
 const tailorBtn = document.getElementById('tailorBtn');
@@ -302,7 +399,7 @@ async function parseResumeFile(file) {
   return payload?.parsed_text || payload?.markdown || '';
 }
 
-async function generateResume(templateId, parsedResumeText, geminiModel) {
+async function generateResume(templateId, parsedResumeText, geminiModel, jobDesc) {
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
   }
@@ -315,7 +412,7 @@ async function generateResume(templateId, parsedResumeText, geminiModel) {
     },
     body: JSON.stringify({
       user_info: parsedResumeText,
-      job_desc: '',
+      job_desc: jobDesc || '',
       custom_instructions: '',
       gemini_model: geminiModel,
     }),
@@ -337,7 +434,63 @@ async function generateResume(templateId, parsedResumeText, geminiModel) {
   return { missingKeywords, pdfBlob };
 }
 
+async function runLiveJDCheck() {
+  if (jdStatus) {
+    jdStatus.innerHTML = '<span style="color: #1a73e8;">Checking for JD...</span>';
+  }
+
+  try {
+    const tab = await queryActiveTab();
+    if (!tab || !tab.id || !tab.url) {
+      if (jdStatus) jdStatus.innerHTML = 'Unable to detect a new JD &mdash; keeping old JD state.';
+      return;
+    }
+
+    const hostname = new URL(tab.url).hostname;
+    const portalHost = normalizeJobPortalHost(hostname);
+    if (!portalHost || !JOB_DESCRIPTION_HOST_MAP[portalHost]) {
+      if (jdStatus) jdStatus.innerHTML = 'Unable to detect a new JD &mdash; keeping old JD state.';
+      return;
+    }
+
+    const injected = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: extractJobDescriptionInPage,
+      args: [JOB_DESCRIPTION_HOST_MAP[portalHost]],
+    });
+
+    const result = injected?.[0]?.result;
+    if (result && result.ok && result.text) {
+      const record = {
+        portal: portalHost,
+        sourceUrl: tab.url,
+        html: result.html,
+        text: result.text,
+        capturedAt: Date.now(),
+      };
+      await saveCapturedJobDescription(record);
+      if (jobDescriptionText) jobDescriptionText.value = record.text;
+      if (jdStatus) jdStatus.innerHTML = '<span style="color: #0f9d58;">Updated JD!</span>';
+    } else {
+      if (jdStatus) jdStatus.innerHTML = 'Unable to detect a new JD &mdash; keeping old JD state.';
+    }
+  } catch (err) {
+    console.warn('Live JD check failed:', err);
+    if (jdStatus) jdStatus.innerHTML = 'Unable to detect a new JD &mdash; keeping old JD state.';
+  }
+}
+
 async function startPostLoginFlow() {
+  const jd = await getStoredCapturedJobDescription();
+  if (jd && jd.text) {
+    jobDescriptionText.value = jd.text;
+  } else {
+    jobDescriptionText.value = '';
+  }
+
+  // Attempt live extraction exactly when transitioning to template layout
+  runLiveJDCheck();
+
   const existingParsedText = await getStoredParsedText();
   if (existingParsedText) {
     showTemplateSection();
@@ -452,16 +605,19 @@ tailorBtn.addEventListener('click', () => {
   clearGeneratedResult();
   setGenerationStatus('Generating resume…', false);
 
-  getStoredParsedText()
+    getStoredParsedText()
     .then(async (parsedText) => {
       if (!parsedText) {
         throw new Error('No parsed resume found. Please upload and parse again.');
       }
 
+      const jobDesc = jobDescriptionText.value.trim();
+
       const { missingKeywords, pdfBlob } = await generateResume(
         selectedTemplateId,
         parsedText,
         selectedGeminiModel,
+        jobDesc,
       );
       if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
       generatedPdfUrl = URL.createObjectURL(pdfBlob);
@@ -499,3 +655,33 @@ chrome.identity.getAuthToken({ interactive: false }, (token) => {
   }
   afterLogin(token);
 });
+
+// Setup live listeners so side panel updates automatically without reopening
+if (chrome.tabs) {
+  chrome.tabs.onActivated.addListener(() => {
+    // Only run if the template section is visible (where jd status lives)
+    if (templateSection && templateSection.classList.contains('visible')) {
+      runLiveJDCheck();
+    }
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if ((changeInfo.status === 'complete' || changeInfo.url) &&
+        templateSection && templateSection.classList.contains('visible') &&
+        tab.active) {
+      runLiveJDCheck();
+    }
+  });
+}
+
+if (chrome.storage) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes[CAPTURED_JOB_DESCRIPTION_KEY]) {
+      const newValue = changes[CAPTURED_JOB_DESCRIPTION_KEY].newValue;
+      if (newValue && newValue.text && templateSection && templateSection.classList.contains('visible')) {
+        if (jobDescriptionText) jobDescriptionText.value = newValue.text;
+        if (jdStatus) jdStatus.innerHTML = '<span style="color: #0f9d58;">Updated JD! (from active tab)</span>';
+      }
+    }
+  });
+}
