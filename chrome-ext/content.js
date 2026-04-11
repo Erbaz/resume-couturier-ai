@@ -86,6 +86,8 @@ function attemptExtraction() {
     };
     chrome.storage.local.set({ [CAPTURED_JOB_DESCRIPTION_KEY]: record }, () => {
       console.log('[Resume Couturier AI] Extracted and saved Job Description.');
+      // Notify components like the side panel that JD has been updated via DOM change
+      chrome.runtime.sendMessage({ type: 'JD_EXTRACTED', record });
     });
   }
 }
