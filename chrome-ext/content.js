@@ -2,10 +2,15 @@ const CAPTURED_JOB_DESCRIPTION_KEY = 'capturedJobDescription';
 
 const JOB_DESCRIPTION_HOST_MAP = {
   'linkedin.com': [
-    { identifier: 'componentKey', valuePattern: '^JobDetails_AboutTheJob_\\d+$' },
-    { tag: 'div', classes: ['description__text', 'description__text--rich'] },
+    { pattern: '^JobDetails_AboutTheJob_\\d+$', attribute: 'componentKey' },
+    { pattern: 'description__text--rich' },
+    { pattern: 'jobs-description-content__text--stretch' }
   ],
-  'glassdoor.com': [{ tag: 'div', classes: ['JobDetails_jobDescription__uW_fK'] }],
+  'glassdoor.com': [{ pattern: 'JobDetails_jobDescription__uW_fK' }],
+  'indeed.com': [
+    { pattern: 'jobsearch-JobComponent-description' },
+    { pattern: 'ia-JobDescription' }
+  ],
 };
 
 function normalizeJobPortalHost(hostname) {
@@ -16,49 +21,35 @@ function normalizeJobPortalHost(hostname) {
   if (h === 'glassdoor.com' || h.endsWith('.glassdoor.com')) {
     return 'glassdoor.com';
   }
+  if (h === 'indeed.com' || h.endsWith('.indeed.com')) {
+    return 'indeed.com';
+  }
   return null;
 }
 
 function extractJobDescriptionInPage(selectorList) {
   for (const spec of selectorList) {
-    if (spec.identifier && spec.valuePattern) {
-      const regex = new RegExp(spec.valuePattern);
-      const nodes = document.getElementsByTagName(spec.tag || '*');
-      for (let i = 0; i < nodes.length; i++) {
-        const el = nodes[i];
-        let val = el.getAttribute(spec.identifier);
-        if (val == null && spec.identifier in el) {
-          val = el[spec.identifier];
-        }
-        if (typeof val === 'string' && regex.test(val)) {
-          return {
-            ok: true,
-            html: el.innerHTML,
-            text: (el.innerText || '').trim(),
-          };
-        }
+    // Default to 'class' attribute if none specified
+    const attr = spec.attribute || spec.identifier || 'class';
+    const pattern = spec.pattern || spec.valuePattern;
+    if (!pattern) continue;
+
+    const regex = new RegExp(pattern);
+    const nodes = document.querySelectorAll('*');
+
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      let val = el.getAttribute(attr);
+      if (val == null && attr in el) {
+        val = el[attr];
       }
-    } else {
-      const tag = spec.tag || 'div';
-      const required = spec.classes || [];
-      const nodes = document.getElementsByTagName(tag);
-      for (let i = 0; i < nodes.length; i++) {
-        const el = nodes[i];
-        const cl = el.classList;
-        let all = true;
-        for (let j = 0; j < required.length; j++) {
-          if (!cl.contains(required[j])) {
-            all = false;
-            break;
-          }
-        }
-        if (all) {
-          return {
-            ok: true,
-            html: el.innerHTML,
-            text: (el.innerText || '').trim(),
-          };
-        }
+      
+      if (typeof val === 'string' && regex.test(val)) {
+        return {
+          ok: true,
+          html: el.innerHTML,
+          text: (el.innerText || '').trim(),
+        };
       }
     }
   }
@@ -93,11 +84,24 @@ function attemptExtraction() {
 }
 
 let debounceTimer;
+let lastAttemptTime = 0;
+const MAX_WAIT = 2000; // Force run every 2s even if DOM stays busy
+
 function debouncedAttempt() {
+  const now = Date.now();
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
+
+  // If it's been a while since we actually ran extraction, run it now
+  if (now - lastAttemptTime > MAX_WAIT) {
+    lastAttemptTime = now;
     attemptExtraction();
-  }, 1000);
+  } else {
+    // Otherwise, set a timer to run it soon
+    debounceTimer = setTimeout(() => {
+      lastAttemptTime = Date.now();
+      attemptExtraction();
+    }, 500);
+  }
 }
 
 // Observe DOM for changes to catch SPAs

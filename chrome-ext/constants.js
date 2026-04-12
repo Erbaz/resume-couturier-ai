@@ -15,8 +15,13 @@ const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
 const JOB_DESCRIPTION_HOST_MAP = {
   'linkedin.com': [
-    { identifier: 'componentKey', valuePattern: '^JobDetails_AboutTheJob_\\d+$' },
-    { tag: 'div', classes: ['description__text', 'description__text--rich'] }
+    { pattern: '^JobDetails_AboutTheJob_\\d+$', attribute: 'componentKey' },
+    { pattern: 'description__text--rich' },
+    { pattern: 'jobs-description-content__text--stretch' }
   ],
-  'glassdoor.com': [{ tag: 'div', classes: ['JobDetails_jobDescription__uW_fK'] }],
+  'glassdoor.com': [{ pattern: 'JobDetails_jobDescription__uW_fK' }],
+  'indeed.com': [
+    { pattern: 'jobsearch-JobComponent-description' },
+    { pattern: 'ia-JobDescription' }
+  ],
 };

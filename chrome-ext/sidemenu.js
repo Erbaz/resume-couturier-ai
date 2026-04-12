@@ -274,6 +274,16 @@ if (chrome.tabs) {
       }, 500);
     }
   });
+
+  // Specifically catch SPA history changes (like clicking a new job in a list)
+  chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+    if (templateSection && templateSection.classList.contains('visible') && details.tabId !== -1) {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        runLiveJDCheck();
+      }, 500);
+    }
+  });
 }
 
 // React to DOM changes reported by content script

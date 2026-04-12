@@ -16,7 +16,9 @@
         "https://*.linkedin.com/*",
         "https://linkedin.com/*",
         "https://*.glassdoor.com/*",
-        "https://glassdoor.com/*"
+        "https://glassdoor.com/*",
+        "https://*.indeed.com/*",
+        "https://indeed.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_end"
@@ -27,7 +29,9 @@
     "activeTab",
     "scripting",
     "identity",
-    "sidePanel"
+    "sidePanel",
+    "tabs",
+    "webNavigation"
   ],
   "host_permissions": [
     "http://127.0.0.1:8000/*",
@@ -35,7 +39,9 @@
     "https://*.linkedin.com/*",
     "https://linkedin.com/*",
     "https://*.glassdoor.com/*",
-    "https://glassdoor.com/*"
+    "https://glassdoor.com/*",
+    "https://*.indeed.com/*",
+    "https://indeed.com/*"
   ],
   "oauth2": {
     "client_id": "104414854681-lj7j07dc4u77tivp4e3idbvap3ulnme7.apps.googleusercontent.com",
