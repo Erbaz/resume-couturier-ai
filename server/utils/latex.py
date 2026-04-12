@@ -15,6 +15,10 @@ def latex_to_pdf(latex_code: str) -> bytes:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
+            if process.returncode != 0:
+                print("LaTeX Error Output:")
+                print(process.stdout.decode("utf-8"))
+                print(process.stderr.decode("utf-8"))
         except FileNotFoundError:
             print("Error: pdflatex is not installed or not in your system PATH.")
             return b""
@@ -23,4 +27,5 @@ def latex_to_pdf(latex_code: str) -> bytes:
         if os.path.exists(pdf_path):
             with open(pdf_path, "rb") as f:
                 return f.read()
+            
     return b""

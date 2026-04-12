@@ -12,6 +12,9 @@ const parseStatus = document.getElementById('parseStatus');
 const templateSection = document.getElementById('templateSection');
 const jobDescriptionContainer = document.getElementById('jobDescriptionContainer');
 const jobDescriptionText = document.getElementById('jobDescriptionText');
+const additionalInstructionsText = document.getElementById('additionalInstructionsText');
+const customTemplateText = document.getElementById('customTemplateText');
+const customTemplateFile = document.getElementById('customTemplateFile');
 const jdStatus = document.getElementById('jdStatus');
 const templatesStatus = document.getElementById('templatesStatus');
 const templatesList = document.getElementById('templatesList');
@@ -31,6 +34,13 @@ let authToken = null;
 /** @type {string | null} */
 let generatedPdfUrl = null;
 let selectedGeminiModel = DEFAULT_GEMINI_MODEL;
+
+function validateTailorBtn() {
+  const hasBaseTemplate = selectedTemplateId !== null;
+  const hasCustomLatex = customTemplateText && customTemplateText.value.trim().length > 0;
+  const hasCustomFile = customTemplateFile && customTemplateFile.files && customTemplateFile.files.length > 0;
+  tailorBtn.disabled = !(hasBaseTemplate || hasCustomLatex || hasCustomFile);
+}
 
 function showAuthView() {
   authSection.classList.add('visible');
@@ -192,9 +202,42 @@ geminiModelSelect.addEventListener('change', () => {
   });
 });
 
+if (customTemplateText) {
+  customTemplateText.addEventListener('input', () => {
+    if (customTemplateText.value.trim().length > 0) {
+      selectedTemplateId = null;
+      templatesList.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
+    }
+    validateTailorBtn();
+  });
+}
+
+if (customTemplateFile) {
+  customTemplateFile.addEventListener('change', () => {
+    if (customTemplateFile.files && customTemplateFile.files.length > 0) {
+      selectedTemplateId = null;
+      templatesList.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
+    }
+    validateTailorBtn();
+  });
+}
+
+async function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
 tailorBtn.addEventListener('click', () => {
-  if (!selectedTemplateId) {
-    setGenerationStatus('Please select a template first.', true);
+  const hasSelected = !!selectedTemplateId;
+  const hasPaste = customTemplateText && customTemplateText.value.trim();
+  const hasFile = customTemplateFile && customTemplateFile.files && customTemplateFile.files.length > 0;
+
+  if (!hasSelected && !hasPaste && !hasFile) {
+    setGenerationStatus('Please select a template or provide your own LaTeX code.', true);
     return;
   }
 
@@ -209,12 +252,25 @@ tailorBtn.addEventListener('click', () => {
       }
 
       const jobDesc = jobDescriptionText.value.trim();
+      const customInst = additionalInstructionsText ? additionalInstructionsText.value.trim() : '';
+
+      let templateLatex = customTemplateText ? customTemplateText.value.trim() : '';
+      if (hasFile) {
+        try {
+          templateLatex = await readFileAsText(customTemplateFile.files[0]);
+        } catch (err) {
+          console.error('read template file:', err);
+          throw new Error('Failed to read uploaded template file.');
+        }
+      }
 
       const { missingKeywords, pdfBlob } = await generateResume(
         selectedTemplateId,
         parsedText,
         selectedGeminiModel,
         jobDesc,
+        customInst,
+        templateLatex
       );
       if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
       generatedPdfUrl = URL.createObjectURL(pdfBlob);

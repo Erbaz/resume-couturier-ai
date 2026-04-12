@@ -18,6 +18,8 @@ class GenerateResumeRequestBody(BaseModel):
     job_desc: str
     custom_instructions: str
     gemini_model: str = "gemini-2.5-flash"
+    template_id: str | None = None
+    template_latex: str | None = None
 
 
 router = APIRouter()
@@ -58,29 +60,41 @@ async def parse_resume(
         )
 
 
-@router.post("/generate/{template_id}")
+@router.post("/generate")
 async def generate_resume(
-    template_id: str,
     body: GenerateResumeRequestBody,
     token_data: dict = Depends(verify_google_oauth_token),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     gemini_model = body.gemini_model
-    template = next((t for t in templates if t["id"] == template_id), None)
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+    
+    latex_template = None
+    if body.template_id:
+        template = next((t for t in templates if t["id"] == body.template_id), None)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        latex_template = template['latex']
+    elif body.template_latex:
+        latex_template = body.template_latex
+    
+    if not latex_template:
+        raise HTTPException(status_code=400, detail="Either template_id or template_latex must be provided")
 
     final_prompt = f"""
-    Use the given information to construct a finalized latex code. You must not say anything else. Your output format will look like this:
-    You must not change stylistics in the template. Just try to make sure that the content is updated, and the sections and breakpoints are as per desired user instructions, or job description requirements. But it is best to maintain the format and section breakdown already defined in the template if not asked to modify.
-    You are at liberty to remove sections that are not needed, or infromation for the user is not provided or insufficient for the section.
-    Your response will be validated by an ATS checker, so make sure that content is relevant, and contains keywords from the job description.
-    Do make sure not to add details not already present in user information. That would be considered lying in a resume and will be rejected.
+    Use the given information to construct a finalized latex code. YOU MUST NOT SAY ANYTHING ELSE.
+    
+    IMPORTANT RULES:
+    1. Maintain the exact structural format of the template provided. 
+    2. Ensure that `\begin{{document}}` and `\end{{document}}` are correctly placed at the start and end of the document. Do not place `\end{{document}}` in the middle of the code.
+    3. Update the content (name, contact info, experience, etc.) using the user information and job description.
+    4. Maintain the stylistics, sections, and formatting defined in the template.
+    5. Do not add details not present in the user information.
+    6. Ensure all special characters like `&` are escaped as `\&`.
     
     user infromation: {body.user_info}
     job description: {body.job_desc}
     additional instructions: {body.custom_instructions}
-    template: {template['latex']}
+    template: {latex_template}
     """
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
@@ -100,7 +114,7 @@ async def generate_resume(
     data = {"contents": [{"parts": [{"text": final_prompt}]}]}
 
     ai_response = requests.post(url, headers=headers, json=data)
-
+    
     if ai_response.status_code != 200:
         raise HTTPException(
             status_code=ai_response.status_code,
@@ -108,7 +122,6 @@ async def generate_resume(
         )
 
     result = ai_response.json()
-    print(f"result: {result}")
     try:
         generated_latex = result["candidates"][0]["content"]["parts"][0]["text"]
 

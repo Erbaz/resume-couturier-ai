@@ -26,9 +26,9 @@
         <div id="parseStatus"></div>
       </div>
       <div id="templateSection" class="section">
+        
         <div class="section-header">
-          <div class="section-title" style="margin-bottom: 0">Choose a template</div>
-          <button type="button" class="secondary" id="backToUploadBtn">Back to Upload</button>
+          <button type="button" class="secondary" id="backToUploadBtn">Back To Upload Your Resume / CV</button>
         </div>
         <label for="geminiModelSelect">Gemini model</label>
         <select id="geminiModelSelect">
@@ -48,8 +48,25 @@
           <textarea id="jobDescriptionText" placeholder="Extracting or paste job description here..." style="width: 100%; height: 80px; font-size: 13px; font-family: inherit; resize: vertical; padding: 6px; border: 1px solid #ccc; border-radius: 6px;"></textarea>
         </div>
 
+
         <div id="templatesStatus"></div>
+        
+        <div id="additionalInstructionsContainer" style="margin-top: 8px; margin-bottom: 12px;">
+          <div class="section-title" style="margin-bottom: 4px;">Additional Instructions (Optional)</div>
+          <textarea id="additionalInstructionsText" placeholder="e.g. Focus on technical leadership or keep it under 1 page..." style="width: 100%; height: 60px; font-size: 13px; font-family: inherit; resize: vertical; padding: 6px; border: 1px solid #ccc; border-radius: 6px;"></textarea>
+        </div>
+
+        <div class="section-title" style="margin-bottom: 0">Choose a template</div>
+
+
         <div id="templatesList"></div>
+
+        <div id="customTemplateContainer" style="margin-top: 12px; margin-bottom: 12px;">
+          <div class="section-title" style="margin-bottom: 4px;">Or add your own template (paste LaTeX or upload .tex file)</div>
+          <textarea id="customTemplateText" placeholder="Paste your LaTeX code here..." style="width: 100%; height: 100px; font-size: 13px; font-family: 'Courier New', Courier, monospace; resize: vertical; padding: 6px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px;"></textarea>
+          <input type="file" id="customTemplateFile" accept=".tex" style="font-size: 12px;" />
+        </div>
+
         <button type="button" class="primary" id="tailorBtn" disabled>
           Tailor Resume
         </button>

@@ -29,12 +29,12 @@ async function parseResumeFile(file) {
   return payload?.parsed_text || payload?.markdown || '';
 }
 
-async function generateResume(templateId, parsedResumeText, geminiModel, jobDesc) {
+async function generateResume(templateId, parsedResumeText, geminiModel, jobDesc, customInstructions, templateLatex) {
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
-  const response = await fetch(`${API_BASE}/resume/generate/${templateId}`, {
+  const response = await fetch(`${API_BASE}/resume/generate`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -43,8 +43,10 @@ async function generateResume(templateId, parsedResumeText, geminiModel, jobDesc
     body: JSON.stringify({
       user_info: parsedResumeText,
       job_desc: jobDesc || '',
-      custom_instructions: '',
+      custom_instructions: customInstructions || '',
       gemini_model: geminiModel,
+      template_id: templateId || null,
+      template_latex: templateLatex || null,
     }),
   });
 
