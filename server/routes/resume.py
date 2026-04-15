@@ -4,12 +4,11 @@ from pydantic import BaseModel
 from constants.latex_templates import templates
 from utils.latex import latex_to_pdf
 from utils.parsing import parse_file
-from utils.evaluator import ats_score_evaluator
 from middleware.authMiddleware import verify_google_oauth_token, security
 import requests
 import os
 import dotenv
-
+import re
 dotenv.load_dotenv()
 
 
@@ -81,16 +80,25 @@ async def generate_resume(
         raise HTTPException(status_code=400, detail="Either template_id or template_latex must be provided")
 
     final_prompt = f"""
-    Use the given information to construct a finalized latex code. YOU MUST NOT SAY ANYTHING ELSE.
+    Use the given information to construct a finalized latex code followed by a cover letter. Your output format should be the following two code blocks ONLY:
+    ```latex
+    <The Latex Code>
+    ```
+    ```markdown
+    <Cover Letter>
+    ```
+    
+    YOU MUST NOT SAY ANYTHING ELSE.
     
     IMPORTANT RULES:
-    1. Maintain the exact structural format of the template provided. 
-    2. Ensure that `\begin{{document}}` and `\end{{document}}` are correctly placed at the start and end of the document. Do not place `\end{{document}}` in the middle of the code.
-    3. Update the content (name, contact info, experience, etc.) using the user information and job description.
-    4. Maintain the stylistics, sections, and formatting defined in the template.
-    5. Do not add details not present in the user information.
-    6. Ensure all special characters like `&` are escaped as `\&`.
-    
+    1. Do not make changes in the code structure or stylistics in the latex code provided. Only update the content in the section. 
+    2. Update the content using the user information and job description. Your result it going to be evaluated for ATS scores so make sure updates are relevant, clean and accurate.
+    3. Remove any sections that are not applicable, or user information does not contain content enough to fill it.
+    4. Do not add details not present in the user information.
+    5. Ensure all special characters like `&` are escaped as `\&`.
+    6. Do not include any other text outside the two code blocks.
+    7. You may only make exception to these rules if additional instructions are provided.
+
     user infromation: {body.user_info}
     job description: {body.job_desc}
     additional instructions: {body.custom_instructions}
@@ -123,22 +131,22 @@ async def generate_resume(
 
     result = ai_response.json()
     try:
-        generated_latex = result["candidates"][0]["content"]["parts"][0]["text"]
+        raw_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-        # Clean up Markdown formatting if provided by Gemini
-        generated_latex = generated_latex.strip()
-        if generated_latex.startswith("```latex"):
-            generated_latex = generated_latex[8:]
-        elif generated_latex.startswith("```"):
-            generated_latex = generated_latex[3:]
-        if generated_latex.endswith("```"):
-            generated_latex = generated_latex[:-3]
+        # Split into latex and cover letter sections
+        latex_match = re.search(r'```latex\s*(.*?)\s*```', raw_text, re.DOTALL)
+        markdown_match = re.search(r'```markdown\s*(.*?)\s*```', raw_text, re.DOTALL)
+
+        generated_latex = latex_match.group(1).strip() if latex_match else ""
+        generated_cover_letter = markdown_match.group(1).strip() if markdown_match else ""
     except (KeyError, IndexError):
         raise HTTPException(
             status_code=500, detail="Unexpected response format from Google API"
         )
 
     print(f"generated_latex: {generated_latex}")
+    print(f"generated_cover_letter: {generated_cover_letter}")
+
 
     pdf_bytes = latex_to_pdf(generated_latex)
     if not pdf_bytes:
@@ -188,30 +196,9 @@ async def generate_resume(
     response_headers = {}
     if missing_keywords:
         response_headers["x-ats-missing-keywords"] = missing_keywords
+        response_headers["x-cover-letter"] = generated_cover_letter
         print(f"ATS Missing Keywords:\n{missing_keywords}")
 
     return Response(
         content=pdf_bytes, media_type="application/pdf", headers=response_headers
     )
-
-
-@router.post("/score")
-async def score_resume(
-    file: UploadFile = File(...),
-    resume_text: str = Form(...),
-    job_desc: str = Form(...),
-):
-    if file.filename and not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
-
-    if not job_desc.strip():
-        raise HTTPException(status_code=400, detail="job_desc is required")
-
-    try:
-        content: bytes | None = await file.read() if file.filename else None
-        score = ats_score_evaluator(
-            job_desc=job_desc, pdf_bytes=content, resume_text=resume_text
-        )
-        return {"evaluation": score}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to score resume: {str(e)}")
