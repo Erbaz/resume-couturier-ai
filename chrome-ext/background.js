@@ -11,7 +11,6 @@ function configureSidePanelBehavior() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Resume Couturier AI installed.");
   configureSidePanelBehavior();
 });
 

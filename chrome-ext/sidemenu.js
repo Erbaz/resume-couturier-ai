@@ -312,7 +312,8 @@ chrome.identity.getAuthToken({ interactive: false }, (token) => {
 // Setup live listeners so side panel updates automatically without reopening
 if (chrome.tabs) {
   chrome.tabs.onActivated.addListener(() => {
-    if (templateSection && templateSection.classList.contains('visible')) {
+    const isVisible = templateSection && templateSection.classList.contains('visible');
+    if (isVisible) {
       runLiveJDCheck();
     }
   });
@@ -333,7 +334,8 @@ if (chrome.tabs) {
 
   // Specifically catch SPA history changes (like clicking a new job in a list)
   chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-    if (templateSection && templateSection.classList.contains('visible') && details.tabId !== -1) {
+    const isVisible = templateSection && templateSection.classList.contains('visible');
+    if (isVisible && details.tabId !== -1) {
       clearTimeout(updateTimeout);
       updateTimeout = setTimeout(() => {
         runLiveJDCheck();
@@ -345,7 +347,8 @@ if (chrome.tabs) {
 // React to DOM changes reported by content script
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'JD_EXTRACTED' && message.record) {
-    if (templateSection && templateSection.classList.contains('visible')) {
+    const isVisible = templateSection && templateSection.classList.contains('visible');
+    if (isVisible) {
       if (jobDescriptionText) jobDescriptionText.value = message.record.text;
       if (jdStatus) jdStatus.innerHTML = '<span style="color: #0f9d58;">Updated JD! (detected change)</span>';
     }

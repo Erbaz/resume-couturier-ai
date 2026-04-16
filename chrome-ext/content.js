@@ -29,16 +29,26 @@ function normalizeJobPortalHost(hostname) {
 
 function extractJobDescriptionInPage(selectorList) {
   for (const spec of selectorList) {
-    // Default to 'class' attribute if none specified
     const attr = spec.attribute || spec.identifier || 'class';
     const pattern = spec.pattern || spec.valuePattern;
     if (!pattern) continue;
 
     const regex = new RegExp(pattern);
-    const nodes = document.querySelectorAll('*');
+    
+    let candidates = [];
+    if (attr === 'class' && /^[a-zA-Z0-9\-_]+$/.test(pattern)) {
+      candidates = Array.from(document.getElementsByClassName(pattern));
+    } else if (attr === 'class') {
+       try {
+         candidates = Array.from(document.querySelectorAll(`[class*="${pattern}"]`));
+       } catch(e) {
+         candidates = Array.from(document.querySelectorAll('*'));
+       }
+    } else {
+      candidates = Array.from(document.querySelectorAll('*'));
+    }
 
-    for (let i = 0; i < nodes.length; i++) {
-      const el = nodes[i];
+    for (const el of candidates) {
       let val = el.getAttribute(attr);
       if (val == null && attr in el) {
         val = el[attr];
@@ -66,21 +76,22 @@ function attemptExtraction() {
   if (!selectorList?.length) return;
 
   const result = extractJobDescriptionInPage(selectorList);
-  if (result.ok && result.text && result.text !== lastExtractedText) {
-    lastExtractedText = result.text;
-    const record = {
-      portal: portalHost,
-      sourceUrl: window.location.href,
-      html: result.html,
-      text: result.text,
-      capturedAt: Date.now(),
-    };
-    chrome.storage.local.set({ [CAPTURED_JOB_DESCRIPTION_KEY]: record }, () => {
-      console.log('[Resume Couturier AI] Extracted and saved Job Description.');
-      // Notify components like the side panel that JD has been updated via DOM change
-      chrome.runtime.sendMessage({ type: 'JD_EXTRACTED', record });
-    });
-  }
+  if (result.ok && result.text) {
+    if (result.text !== lastExtractedText) {
+      lastExtractedText = result.text;
+      const record = {
+        portal: portalHost,
+        sourceUrl: window.location.href,
+        html: result.html,
+        text: result.text,
+        capturedAt: Date.now(),
+      };
+      chrome.storage.local.set({ [CAPTURED_JOB_DESCRIPTION_KEY]: record }, () => {
+        // Notify components like the side panel that JD has been updated via DOM change
+        chrome.runtime.sendMessage({ type: 'JD_EXTRACTED', record });
+      });
+    } 
+  } 
 }
 
 let debounceTimer;
@@ -105,10 +116,10 @@ function debouncedAttempt() {
 }
 
 // Observe DOM for changes to catch SPAs
-const observer = new MutationObserver(() => {
+const observer = new MutationObserver((mutations) => {
   debouncedAttempt();
 });
-observer.observe(document.body, { childList: true, subtree: true });
+observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
 // Attempt extraction right away as well
 debouncedAttempt();
