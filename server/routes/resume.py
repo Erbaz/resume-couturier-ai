@@ -9,6 +9,7 @@ import requests
 import os
 import dotenv
 import re
+import urllib.parse
 dotenv.load_dotenv()
 
 
@@ -195,9 +196,13 @@ async def generate_resume(
 
     response_headers = {}
     if missing_keywords:
-        response_headers["x-ats-missing-keywords"] = missing_keywords
-        response_headers["x-cover-letter"] = generated_cover_letter
+        # Use URL-encoding to avoid UnicodeEncodeError in headers
+        response_headers["X-ATS-Missing-Keywords"] = urllib.parse.quote(missing_keywords)
         print(f"ATS Missing Keywords:\n{missing_keywords}")
+
+    if generated_cover_letter:
+        # Use URL-encoding to avoid UnicodeEncodeError in headers
+        response_headers["X-Cover-Letter"] = urllib.parse.quote(generated_cover_letter)
 
     return Response(
         content=pdf_bytes, media_type="application/pdf", headers=response_headers

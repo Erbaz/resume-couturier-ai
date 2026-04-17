@@ -14,11 +14,17 @@
     {
       "matches": [
         "https://*.linkedin.com/*",
-        "https://linkedin.com/*",
+        "https://*.linkedin.ca/*",
+        "https://*.linkedin.pk/*",
+        "https://*.linkedin.co.uk/*",
         "https://*.glassdoor.com/*",
-        "https://glassdoor.com/*",
+        "https://*.glassdoor.ca/*",
+        "https://*.glassdoor.pk/*",
+        "https://*.glassdoor.co.uk/*",
         "https://*.indeed.com/*",
-        "https://indeed.com/*"
+        "https://*.indeed.ca/*",
+        "https://*.indeed.pk/*",
+        "https://*.indeed.co.uk/*"
       ],
       "js": ["content.js"],
       "run_at": "document_end",
@@ -38,11 +44,17 @@
     "http://127.0.0.1:8000/*",
     "http://localhost:8000/*",
     "https://*.linkedin.com/*",
-    "https://linkedin.com/*",
+    "https://*.linkedin.ca/*",
+    "https://*.linkedin.pk/*",
+    "https://*.linkedin.co.uk/*",
     "https://*.glassdoor.com/*",
-    "https://glassdoor.com/*",
+    "https://*.glassdoor.ca/*",
+    "https://*.glassdoor.pk/*",
+    "https://*.glassdoor.co.uk/*",
     "https://*.indeed.com/*",
-    "https://indeed.com/*"
+    "https://*.indeed.ca/*",
+    "https://*.indeed.pk/*",
+    "https://*.indeed.co.uk/*"
   ],
   "oauth2": {
     "client_id": "104414854681-lj7j07dc4u77tivp4e3idbvap3ulnme7.apps.googleusercontent.com",

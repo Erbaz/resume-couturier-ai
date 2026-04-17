@@ -1,13 +1,16 @@
 const CAPTURED_JOB_DESCRIPTION_KEY = 'capturedJobDescription';
 
 const JOB_DESCRIPTION_HOST_MAP = {
-  'linkedin.com': [
+  'linkedin': [
     { pattern: '^JobDetails_AboutTheJob_\\d+$', attribute: 'componentKey' },
     { pattern: 'description__text--rich' },
     { pattern: 'jobs-description-content__text--stretch' }
   ],
-  'glassdoor.com': [{ pattern: 'JobDetails_jobDescription__uW_fK' }],
-  'indeed.com': [
+  'glassdoor': [
+    { pattern: '^JobDetails_jobDescription__' },
+    { pattern: '^Section_sectionComponent__' }
+  ],
+  'indeed': [
     { pattern: 'jobsearch-JobComponent-description' },
     { pattern: 'ia-JobDescription' }
   ],
@@ -15,14 +18,14 @@ const JOB_DESCRIPTION_HOST_MAP = {
 
 function normalizeJobPortalHost(hostname) {
   const h = hostname.toLowerCase();
-  if (h === 'linkedin.com' || h.endsWith('.linkedin.com')) {
-    return 'linkedin.com';
+  if (/(^|\.)linkedin\./.test(h)) {
+    return 'linkedin';
   }
-  if (h === 'glassdoor.com' || h.endsWith('.glassdoor.com')) {
-    return 'glassdoor.com';
+  if (/(^|\.)glassdoor\./.test(h)) {
+    return 'glassdoor';
   }
-  if (h === 'indeed.com' || h.endsWith('.indeed.com')) {
-    return 'indeed.com';
+  if (/(^|\.)indeed\./.test(h)) {
+    return 'indeed';
   }
   return null;
 }
@@ -40,7 +43,9 @@ function extractJobDescriptionInPage(selectorList) {
       candidates = Array.from(document.getElementsByClassName(pattern));
     } else if (attr === 'class') {
        try {
-         candidates = Array.from(document.querySelectorAll(`[class*="${pattern}"]`));
+         // Extract the literal part of the regex to use in querySelectorAll for efficiency
+         const literalPart = pattern.replace(/[^^a-zA-Z0-9\-_].*$/, '').replace(/^\^/, '');
+         candidates = Array.from(document.querySelectorAll(`[class*="${literalPart}"]`));
        } catch(e) {
          candidates = Array.from(document.querySelectorAll('*'));
        }
@@ -55,6 +60,7 @@ function extractJobDescriptionInPage(selectorList) {
       }
       
       if (typeof val === 'string' && regex.test(val)) {
+        console.log('[RC-AI] Match found! Pattern:', pattern, 'Actual Attribute Value:', val);
         return {
           ok: true,
           html: el.innerHTML,
@@ -71,6 +77,8 @@ let lastExtractedText = '';
 function attemptExtraction() {
   const portalHost = normalizeJobPortalHost(window.location.hostname);
   if (!portalHost) return;
+
+  console.log('[RC-AI] Extraction attempt for:', portalHost, 'on', window.location.hostname);
 
   const selectorList = JOB_DESCRIPTION_HOST_MAP[portalHost];
   if (!selectorList?.length) return;

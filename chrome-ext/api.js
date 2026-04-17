@@ -61,7 +61,8 @@ async function generateResume(templateId, parsedResumeText, geminiModel, jobDesc
     throw new Error(detail);
   }
 
-  const missingKeywords = response.headers.get('x-ats-missing-keywords') || '';
+  const missingKeywords = decodeURIComponent(response.headers.get('x-ats-missing-keywords') || '');
+  const coverLetter = decodeURIComponent(response.headers.get('x-cover-letter') || '');
   const pdfBlob = await response.blob();
-  return { missingKeywords, pdfBlob };
+  return { missingKeywords, coverLetter, pdfBlob };
 }

@@ -26,6 +26,8 @@ const resultSection = document.getElementById('resultSection');
 const previewPdfBtn = document.getElementById('previewPdfBtn');
 const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 const keywordsTags = document.getElementById('keywordsTags');
+const coverLetterText = document.getElementById('coverLetterText');
+const copyCoverLetterBtn = document.getElementById('copyCoverLetterBtn');
 
 /** @type {string | null} */
 let selectedTemplateId = null;
@@ -264,7 +266,7 @@ tailorBtn.addEventListener('click', () => {
         }
       }
 
-      const { missingKeywords, pdfBlob } = await generateResume(
+      const { missingKeywords, coverLetter, pdfBlob } = await generateResume(
         selectedTemplateId,
         parsedText,
         selectedGeminiModel,
@@ -289,6 +291,21 @@ tailorBtn.addEventListener('click', () => {
       };
 
       renderMissingKeywords(missingKeywords);
+      if (coverLetterText) {
+        coverLetterText.value = coverLetter || '';
+      }
+      
+      if (copyCoverLetterBtn) {
+        copyCoverLetterBtn.onclick = () => {
+          navigator.clipboard.writeText(coverLetter || '').then(() => {
+            const originalText = copyCoverLetterBtn.textContent;
+            copyCoverLetterBtn.textContent = 'Copied!';
+            setTimeout(() => {
+              copyCoverLetterBtn.textContent = originalText;
+            }, 2000);
+          });
+        };
+      }
       resultSection.classList.add('visible');
       setGenerationStatus('Resume generated successfully.', false);
     })
