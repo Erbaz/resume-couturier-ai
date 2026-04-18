@@ -54,7 +54,8 @@ function resolveThumbnailUrl(thumbnail) {
   if (!thumbnail) return '';
   if (/^https?:\/\//i.test(thumbnail)) return thumbnail;
   const name = thumbnail.replace(/^.*[/\\]/, '');
-  return `${API_BASE}/assets/${name}`;
+  // Append a timestamp to bypass browser caching for updated thumbnails
+  return `${API_BASE}/assets/${name}?t=${Date.now()}`;
 }
 
 /** Opens image URL in a new browser tab (does not change template selection). */

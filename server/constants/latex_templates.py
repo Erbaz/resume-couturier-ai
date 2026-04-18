@@ -427,196 +427,221 @@ templates = [
         'name': 'template 3',
         'thumbnail': r'server/assets/resume_thumbnail_id_3.jpeg',
         'latex':
-        r"""
-            % !TeX spellcheck = en_GB
-            % !TeX program = pdflatex
+        r"""%-----------------------------------------------------------------------------------------------------------------------------------------------%
+            %	The MIT License (MIT)
             %
-            % LuxSleek-CV 1.1 LaTeX template
-            % Author: Andreï V. Kostyrka, University of Luxembourg
+            %	Copyright (c) 2021 Jitin Nair
             %
-            % 1.1: added tracking and letter-spacing for prettier lower caps, added `~` for language levels
-            % 1.0: initial release
+            %	Permission is hereby granted, free of charge, to any person obtaining a copy
+            %	of this software and associated documentation files (the "Software"), to deal
+            %	in the Software without restriction, including without limitation the rights
+            %	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            %	copies of the Software, and to permit persons to whom the Software is
+            %	furnished to do so, subject to the following conditions:
+            %	
+            %	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            %	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            %	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            %	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            %	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            %	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+            %	THE SOFTWARE.
+            %	
             %
-            % This template fills the gap in the available variety of templates
-            % by proposing something that is not a custom class, not using any
-            % hard-coded settings deeply hidden in style files, and provides
-            % a handful of custom command definitions that are as transparent as it gets.
-            % Developed at the University of Luxembourg.
-            %
-            % *NOTHING IS HARCODED, and never should be.*
-            %
-            % Target audience: applicants in the IT industry, or business in general
-            %
-            % The main strength of this template is, it explicitly showcases how
-            % to break the flow of text to achieve the most flexible right alignment
-            % of dates for multiple configurations.
+            %-----------------------------------------------------------------------------------------------------------------------------------------------%
 
-            \documentclass[11pt, a4paper]{article} 
+            %----------------------------------------------------------------------------------------
+            %	DOCUMENT DEFINITION
+            %----------------------------------------------------------------------------------------
 
-            \usepackage[T1]{fontenc}     % We are using pdfLaTeX,
-            \usepackage[utf8]{inputenc}  % hence this preparation
-            \usepackage[british]{babel}  
-            \usepackage[left = 0mm, right = 0mm, top = 0mm, bottom = 0mm]{geometry}
-            \usepackage[stretch = 25, shrink = 25, tracking=true, letterspace=30]{microtype}  
-            \usepackage{graphicx}        % To insert pictures
-            \usepackage{xcolor}          % To add colour to the document
-            \usepackage{marvosym}        % Provides icons for the contact details
+            % article class because we want to fully customize the page and not use a cv template
+            \documentclass[a4paper,12pt]{article}
 
-            \usepackage{enumitem}        % To redefine spacing in lists
-            \setlist{parsep = 0pt, topsep = 0pt, partopsep = 1pt, itemsep = 1pt, leftmargin = 6mm}
+            %----------------------------------------------------------------------------------------
+            %	FONT
+            %----------------------------------------------------------------------------------------
 
-            \usepackage{FiraSans}        % Change this to use any font, but keep it simple
-            \renewcommand{\familydefault}{\sfdefault}
+            % % fontspec allows you to use TTF/OTF fonts directly
+            % \usepackage{fontspec}
+            % \defaultfontfeatures{Ligatures=TeX}
 
-            \definecolor{cvblue}{HTML}{304263}
+            % % modified for ShareLaTeX use
+            % \setmainfont[
+            % SmallCapsFont = Fontin-SmallCaps.otf,
+            % BoldFont = Fontin-Bold.otf,
+            % ItalicFont = Fontin-Italic.otf
+            % ]
+            % {Fontin.otf}
 
-            %%%%%%% USER COMMAND DEFINITIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % These are the real workhorses of this template
-            \newcommand{\dates}[1]{\hfill\mbox{\textbf{#1}}} % Bold stuff that doesn’t got broken into lines
-            \newcommand{\is}{\par\vskip.5ex plus .4ex} % Item spacing
-            \newcommand{\smaller}[1]{{\small$\diamond$\ #1}}
-            \newcommand{\headleft}[1]{\vspace*{3ex}\textsc{\textbf{#1}}\par%
-                \vspace*{-1.5ex}\hrulefill\par\vspace*{0.7ex}}
-            \newcommand{\headright}[1]{\vspace*{2.5ex}\textsc{\Large\color{cvblue}#1}\par%
-                \vspace*{-2ex}{\color{cvblue}\hrulefill}\par}
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %----------------------------------------------------------------------------------------
+            %	PACKAGES
+            %----------------------------------------------------------------------------------------
+            \usepackage{url}
+            \usepackage{parskip} 	
 
-            \usepackage[colorlinks = true, urlcolor = white, linkcolor = white]{hyperref}
+            %other packages for formatting
+            \RequirePackage{color}
+            \RequirePackage{graphicx}
+            \usepackage[usenames,dvipsnames]{xcolor}
+            \usepackage[scale=0.9]{geometry}
 
+            %tabularx environment
+            \usepackage{tabularx}
+
+            %for lists within experience section
+            \usepackage{enumitem}
+
+            % centered version of 'X' col. type
+            \newcolumntype{C}{>{\centering\arraybackslash}X} 
+
+            %to prevent spillover of tabular into next pages
+            \usepackage{supertabular}
+            \usepackage{tabularx}
+            \newlength{\fullcollw}
+            \setlength{\fullcollw}{0.47\textwidth}
+
+            %custom \section
+            \usepackage{titlesec}				
+            \usepackage{multicol}
+            \usepackage{multirow}
+
+            %CV Sections inspired by: 
+            %http://stefano.italians.nl/archives/26
+            \titleformat{\section}{\Large\scshape\raggedright}{}{0em}{}[\titlerule]
+            \titlespacing{\section}{0pt}{10pt}{10pt}
+
+            %for publications
+            \usepackage[style=authoryear,sorting=ynt, maxbibnames=2]{biblatex}
+
+            %Setup hyperref package, and colours for links
+            \usepackage[unicode, draft=false]{hyperref}
+            \definecolor{linkcolour}{rgb}{0,0.2,0.6}
+            \hypersetup{colorlinks,breaklinks,urlcolor=linkcolour,linkcolor=linkcolour}
+            \addbibresource{citations.bib}
+            \setlength\bibitemsep{1em}
+
+            %for social icons
+            \usepackage{fontawesome5}
+
+            %debug page outer frames
+            %\usepackage{showframe}
+
+
+            % job listing environments
+            \newenvironment{jobshort}[2]
+                {
+                \begin{tabularx}{\linewidth}{@{}l X r@{}}
+                \textbf{#1} & \hfill &  #2 \\[3.75pt]
+                \end{tabularx}
+                }
+                {
+                }
+
+            \newenvironment{joblong}[2]
+                {
+                \begin{tabularx}{\linewidth}{@{}l X r@{}}
+                \textbf{#1} & \hfill &  #2 \\[3.75pt]
+                \end{tabularx}
+                \begin{minipage}[t]{\linewidth}
+                \begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=3pt,label=--]
+                }
+                {
+                \end{itemize}
+                \end{minipage}    
+                }
+
+
+
+            %----------------------------------------------------------------------------------------
+            %	BEGIN DOCUMENT
+            %----------------------------------------------------------------------------------------
             \begin{document}
 
-            % Style definitions -- killing the unnecessary space and adding the skips explicitly
-            \setlength{\topskip}{0pt}
-            \setlength{\parindent}{0pt}
-            \setlength{\parskip}{0pt}
-            \setlength{\fboxsep}{0pt}
-            \pagestyle{empty}
-            \raggedbottom
+            % non-numbered pages
+            \pagestyle{empty} 
 
-            \begin{minipage}[t]{0.33\textwidth} %% Left column -- outer definition
-            %  Left column -- top dark rectangle
-            \colorbox{cvblue}{\begin{minipage}[t][5mm][t]{\textwidth}\null\hfill\null\end{minipage}}
+            %----------------------------------------------------------------------------------------
+            %	TITLE
+            %----------------------------------------------------------------------------------------
 
-            \vspace{-.2ex} % Eliminates the small gap
-            \colorbox{cvblue!90}{\color{white}  %% LEFT BOX
-            \kern0.09\textwidth\relax% Left margin provided explicitly
-            \begin{minipage}[t][293mm][t]{0.82\textwidth}
-            \raggedright
-            \vspace*{2.5ex}
+            % \begin{tabularx}{\linewidth}{ @{}X X@{} }
+            % \huge{Your Name}\vspace{2pt} & \hfill \emoji{incoming-envelope} email@email.com \\
+            % \raisebox{-0.05\height}\faGithub\ username \ | \
+            % \raisebox{-0.00\height}\faLinkedin\ username \ | \ \raisebox{-0.05\height}\faGlobe \ mysite.com  & \hfill \emoji{calling} number
+            % \end{tabularx}
 
-            \Large Guillaume \textbf{\textsc{Ouancaux}} \normalsize 
+            \begin{tabularx}{\linewidth}{@{} C @{}}
+            \Huge{Your Name} \\[7.5pt]
+            \href{https://github.com/username}{\raisebox{-0.05\height}\faGithub\ username} \ $|$ \ 
+            \href{https://linkedin.com/in/username}{\raisebox{-0.05\height}\faLinkedin\ username} \ $|$ \ 
+            \href{https://mysite.com}{\raisebox{-0.05\height}\faGlobe \ mysite.com} \ $|$ \ 
+            \href{mailto:email@mysite.com}{\raisebox{-0.05\height}\faEnvelope \ email@mysite.com} \ $|$ \ 
+            \href{tel:+000000000000}{\raisebox{-0.05\height}\faMobile \ +00.00.000.000} \\
+            \end{tabularx}
 
-            % Centering without extra vertical spacing
-            \null\hfill\includegraphics[width=0.65\textwidth]{oval-transparent.png}\hfill\null
+            %----------------------------------------------------------------------------------------
+            % EXPERIENCE SECTIONS
+            %----------------------------------------------------------------------------------------
 
-            \vspace*{0.5ex} % Extra space after the picture
+            %Interests/ Keywords/ Summary
+            \section{Summary}
+            This CV can also be automatically complied and published using GitHub Actions. For details, \href{https://github.com/jitinnair1/autoCV}{click here}.
 
-            \headleft{Profile}
-            Innovative and passionate \textbf{data analyst} with over 15~years of experience in the chocolate and confectionery industry, seeking to leverage extensive background in data analysis, flavour profiling, and market trends.
-            Proficient in Python programming, I have successfully developed and maintained multiple scalable and efficient software applications.
-            Demonstrated strong problem-solving skills by implementing optimised algorithms and data structures in Python, significantly improving system performance.
+            %Experience
+            \section{Work Experience}
 
-            \headleft{Contact details}
-            \small % To fit more content
-            \MVAt\ {\small wonky.william123@gmail.com} \\[0.4ex]
-            \Mobilefone\ +352\,123\,456\,789 \\[0.5ex]
-            \Mundus\ \href{https://github.com/WillyWonka}{github.com/WillyWonka} \\[0.1ex]
-            \Letter\ 49 Paddocks Spring, Farthingtonshire SG2 9UD, UK
-            \normalsize
-
-            \headleft{Personal information}
-            %Year of birth: \textbf{1861} \\[0.5ex]
-            Citizenship: \textbf{United Kingdom} \\[0.5ex]
-            Family: \textbf{Single without children} \\[0.5ex]
-            Languages: \textbf{French}~(B2), \textbf{Luxembourgish}~(A2), \textbf{German}~(A1), \textbf{English}~(native)
-
-            \headleft{Skills}
-            \begin{itemize}
-            \item Python, SQL, PySpark
-            \item R, Matlab, Azure Databricks
-            \item MS Word, Excel, PowerPoint
-            \item Communication and team collaboration
-            \end{itemize} 
-
-            \end{minipage}%
-            \kern0.09\textwidth\relax%%Right margin provided explicitly to stretch the colourbox
-            }
-            \end{minipage}% Right column
-            \hskip2.5em% Left margin for the white area
-            \begin{minipage}[t]{0.56\textwidth}
-            \setlength{\parskip}{0.8ex}% Adds spaces between paragraphs; use \\ to add new lines without this space. Shrink this amount to fit more data vertically
-
-            \vspace{2ex}
-
-            \headright{Experience}
-
-            \textsc{Senior data scientist} at \textit{Shockelasrull (Luxembourg).}  \dates{2021.04--pres.} \\
-            \smaller{Natural language processing, topic modelling, olfactory analysis,  building chained processes, automation of reports.}
-
-            \is % Item spacing -- defined in the preamble
-            \textsc{Data scientist} at \textit{Chocky-Facky SA (United Kingdom).}  \dates{2019.02--2020.11} \\
-            \smaller{Predictive models for consumer taste preferences, market trend analysis, advanced data visualisation, negotiations with stakeholders.}
-
-            \is
-            \textsc{Data analyst} at \textit{Chocolate River Factory (France).}  \dates{2018.02--2018.12} \\
-            \smaller{Data collection processes, extensive research on carbonation levels, collaboration with product development teams.}
-
-            \is
-            \textsc{Research support} at \textit{Everlasting Gobstopper Ltd.\ (Mongolia).} \\ 
-            % \null is necessary here because this is a manually enforced break
-            % and \dates start with an \hfill that needs a \nukk
-            \null\dates{2016.05--2018.01} \\[-\baselineskip]
-            \smaller{Developing and implementing methods for inferring \\
-            causal networks from time-series, analysis of customer feedback data, mathematical optimisation,  machine learning.}
-
-            \is
-            \textsc{Research intern} at \textit{Snozzberry Farms (Italy).} \dates{2015.04--2015.07} \\
-            \smaller{Dashboard creation with BI tools, analysis of competitor strategies.}
-
-            \is
-            \textsc{Researcher} at \textit{Whipple-Scrumptious Fudgemallow Delight Inc.\ (Guadeloupe).} \dates{2013.09--2015.01} \\
-            \smaller{Econometric modelling, market data analysis, translation.} 
-
-            \is
-            \textsc{Intern in logistics management} at \textit{Candy Confections (Egypt).} \\  
-            \smaller{Data management with Microsoft Excel.} \dates{2012.04--2012.12}
-
-            \is
-            \textsc{Editor} at \textit{BEANS Publishing LLC (Japan).} \dates{2009.03--2011.10} \\
-            \smaller{Editorial work on dentistry literature, proofreading.} 
+            \begin{jobshort}{Designation}{Jan 2021 - present}
+            long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width
+            \end{jobshort}
 
 
-            \headright{Education}
+            \begin{joblong}{Designation}{Mar 2019 - Jan 2021}
+            \item long long line of blah blah that will wrap when the table fills the column width
+            \item again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah. again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah
+            \end{joblong}
+            
+            %Projects
+            \section{Projects}
 
-            \textsc{Master in Economics.} Mathematical Methods of Economic Analysis. \textit{University of Sweets and Treats}. \dates{2013--2015} \\
-            \smaller{Thesis title: \textit{The Effect of Beverage Sugar Content on Their Shelf Life.}} \\
-            \smaller{Econometric analysis, survival analysis, panel and time-series models.}
+            \begin{tabularx}{\linewidth}{ @{}l r@{} }
+            \textbf{Some Project} & \hfill \href{https://some-link.com}{Link to Demo} \\[3.75pt]
+            \multicolumn{2}{@{}X@{}}{long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width}  \\
+            \end{tabularx}
 
-            \is
-            \textsc{Bachelor of Science in Biology.} Faculty of Experimental Confectionery. \textit{Bolzmann State Technical University}.  \dates{2006--2010} \\
-            \smaller{Mathematical modelling, numerical methods, mathematical optimisation.}
+            %----------------------------------------------------------------------------------------
+            %	EDUCATION
+            %----------------------------------------------------------------------------------------
+            \section{Education}
+            \begin{tabularx}{\linewidth}{@{}l X@{}}	
+            2030 - present & PhD (Subject) at \textbf{University} \hfill \normalsize (GPA: 4.0/4.0) \\
 
+            2023 - 2027 & Bachelor's Degree at \textbf{College} \hfill (GPA: 4.0/4.0) \\ 
 
-            \headright{Additional education}
+            2022 & Class 12th Some Board \hfill  (Grades) \\
 
-            \textsc{Stanford introduction to food and health.}
-            \textit{Coursera.} \dates{2021} \\
-            \smaller{Contemporary trends in eating, cooking workshop, future directions in health.}
+            2021 & Class 10th Some Board \hfill  (Grades) \\
+            \end{tabularx}
 
-            \is
-            \textsc{Topical courses -- Master in Chocolate Sculpting.}
-            \textit{University of Cocoa.} \dates{2015--2017} \\
-            \smaller{Data science, statistics and probability,  food science, agricultural science, optimal stopping theory, cultural studies in food.}
+            %----------------------------------------------------------------------------------------
+            %	PUBLICATIONS
+            %----------------------------------------------------------------------------------------
+            \section{Publications}
+            \begin{refsection}[citations.bib]
+            \nocite{*}
+            \printbibliography[heading=none]
+            \end{refsection}
 
+            %----------------------------------------------------------------------------------------
+            %	SKILLS
+            %----------------------------------------------------------------------------------------
+            \section{Skills}
+            \begin{tabularx}{\linewidth}{@{}l X@{}}
+            Some Skills &  \normalsize{This, That, Some of this and that etc.}\\
+            Some More Skills  &  \normalsize{Also some more of this, Some more that, And some of this and that etc.}\\  
+            \end{tabularx}
 
-            \headright{Hobbies}
-
-            \textit{Music:} imitating birds on the banjo, composing and decomposing (morally).
-
-            \textit{Poetry:} inventing rhymes, surreal art.
-
-            \textit{Miscellaneous:} zoology, mycology, trainspotting, 1930s horror films.
-            \end{minipage}
+            \vfill
+            \center{\footnotesize Last updated: \today}
 
             \end{document}
         """

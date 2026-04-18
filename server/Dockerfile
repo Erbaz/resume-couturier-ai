@@ -10,9 +10,12 @@ WORKDIR /app
 # and fonts like `FiraSans`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base \
+    texlive-latex-recommended \
     texlive-fonts-recommended \
     texlive-latex-extra \
     texlive-fonts-extra \
+    texlive-bibtex-extra \
+    biber \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
