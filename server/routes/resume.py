@@ -26,7 +26,7 @@ router = APIRouter()
 
 
 @router.get("/latex-templates")
-async def get_latex_templates():
+async def get_latex_templates(token_data: dict = Depends(verify_google_oauth_token)):
 
     response = []
     for template in templates:

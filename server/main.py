@@ -2,10 +2,20 @@ import os
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from routes import auth, resume
 
 app = FastAPI(title="Resume Couturier API")
+
+# Add CORS middleware to allow all origins for now
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 assets_dir = os.path.join(os.path.dirname(__file__), "assets")
 if os.path.isdir(assets_dir):
