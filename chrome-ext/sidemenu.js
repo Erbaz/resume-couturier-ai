@@ -15,6 +15,7 @@ const jobDescriptionText = document.getElementById('jobDescriptionText');
 const additionalInstructionsText = document.getElementById('additionalInstructionsText');
 const customTemplateText = document.getElementById('customTemplateText');
 const customTemplateFile = document.getElementById('customTemplateFile');
+const customTemplateFileName = document.getElementById('customTemplateFileName');
 const jdStatus = document.getElementById('jdStatus');
 const templatesStatus = document.getElementById('templatesStatus');
 const templatesList = document.getElementById('templatesList');
@@ -35,14 +36,17 @@ let selectedTemplateId = null;
 let authToken = null;
 /** @type {string | null} */
 let generatedPdfUrl = null;
+let storedFileData = null;
 let selectedGeminiModel = DEFAULT_GEMINI_MODEL;
+
 
 function validateTailorBtn() {
   const hasBaseTemplate = selectedTemplateId !== null;
   const hasCustomLatex = customTemplateText && customTemplateText.value.trim().length > 0;
-  const hasCustomFile = customTemplateFile && customTemplateFile.files && customTemplateFile.files.length > 0;
+  const hasCustomFile = (customTemplateFile && customTemplateFile.files && customTemplateFile.files.length > 0) || !!storedFileData;
   tailorBtn.disabled = !(hasBaseTemplate || hasCustomLatex || hasCustomFile);
 }
+
 
 function showAuthView() {
   authSection.classList.add('visible');
@@ -95,6 +99,21 @@ async function startPostLoginFlow() {
     jobDescriptionText.value = jd.text;
   } else {
     jobDescriptionText.value = '';
+  }
+
+  // Pre-load custom templates from storage
+  const storedLatx = await getStoredCustomTemplateText();
+  if (customTemplateText) customTemplateText.value = storedLatx || '';
+
+  storedFileData = await getStoredCustomTemplateFile();
+  if (storedFileData && customTemplateFileName) {
+    customTemplateFileName.textContent = `Active file: ${storedFileData.name}`;
+  }
+
+  // Conflict resolution: if both are present, remove text
+  if (storedFileData && customTemplateText && customTemplateText.value.trim()) {
+    customTemplateText.value = '';
+    await saveCustomTemplateText('');
   }
 
   // Attempt live extraction exactly when transitioning to template layout
@@ -205,24 +224,50 @@ geminiModelSelect.addEventListener('change', () => {
 });
 
 if (customTemplateText) {
-  customTemplateText.addEventListener('input', () => {
+  customTemplateText.addEventListener('input', async () => {
     if (customTemplateText.value.trim().length > 0) {
       selectedTemplateId = null;
       templatesList.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
+      
+      // If typing and file exists, clear file (conflict resolution)
+      if (customTemplateFile.value || storedFileData) {
+        customTemplateFile.value = '';
+        storedFileData = null;
+        if (customTemplateFileName) customTemplateFileName.textContent = '';
+        await saveCustomTemplateFile(null);
+      }
     }
+    await saveCustomTemplateText(customTemplateText.value);
     validateTailorBtn();
   });
 }
 
 if (customTemplateFile) {
-  customTemplateFile.addEventListener('change', () => {
+  customTemplateFile.addEventListener('change', async () => {
     if (customTemplateFile.files && customTemplateFile.files.length > 0) {
       selectedTemplateId = null;
       templatesList.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
+      
+      const file = customTemplateFile.files[0];
+      try {
+        const content = await readFileAsText(file);
+        storedFileData = { name: file.name, content };
+        if (customTemplateFileName) customTemplateFileName.textContent = `Active file: ${file.name}`;
+        await saveCustomTemplateFile(storedFileData);
+
+        // Conflict resolution: if file chosen, clear text area
+        if (customTemplateText && customTemplateText.value.trim()) {
+          customTemplateText.value = '';
+          await saveCustomTemplateText('');
+        }
+      } catch (err) {
+        console.error('Error reading custom template file:', err);
+      }
     }
     validateTailorBtn();
   });
 }
+
 
 async function readFileAsText(file) {
   return new Promise((resolve, reject) => {
@@ -264,7 +309,10 @@ tailorBtn.addEventListener('click', () => {
           console.error('read template file:', err);
           throw new Error('Failed to read uploaded template file.');
         }
+      } else if (storedFileData) {
+        templateLatex = storedFileData.content;
       }
+
 
       const { missingKeywords, coverLetter, pdfBlob } = await generateResume(
         selectedTemplateId,

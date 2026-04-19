@@ -71,3 +71,32 @@ function saveGeminiModel(model) {
     });
   });
 }
+
+function getStoredCustomTemplateText() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([CUSTOM_TEMPLATE_TEXT_KEY], (result) => {
+      resolve(result[CUSTOM_TEMPLATE_TEXT_KEY] || '');
+    });
+  });
+}
+
+function saveCustomTemplateText(text) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [CUSTOM_TEMPLATE_TEXT_KEY]: text }, resolve);
+  });
+}
+
+function getStoredCustomTemplateFile() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([CUSTOM_TEMPLATE_FILE_KEY], (result) => {
+      resolve(result[CUSTOM_TEMPLATE_FILE_KEY] || null);
+    });
+  });
+}
+
+function saveCustomTemplateFile(fileData) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [CUSTOM_TEMPLATE_FILE_KEY]: fileData }, resolve);
+  });
+}
+

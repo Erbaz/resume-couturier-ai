@@ -3,6 +3,9 @@ const API_BASE = 'http://127.0.0.1:8000';
 const PARSED_RESUME_STORAGE_KEY = 'parsedResumeText';
 const CAPTURED_JOB_DESCRIPTION_KEY = 'capturedJobDescription';
 const GEMINI_MODEL_STORAGE_KEY = 'geminiModel';
+const CUSTOM_TEMPLATE_TEXT_KEY = 'customTemplateText';
+const CUSTOM_TEMPLATE_FILE_KEY = 'customTemplateFile';
+
 const GEMINI_MODEL_OPTIONS = [
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
