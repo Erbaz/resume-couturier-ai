@@ -57,7 +57,7 @@
     "https://*.indeed.co.uk/*"
   ],
   "oauth2": {
-    "client_id": "104414854681-lj7j07dc4u77tivp4e3idbvap3ulnme7.apps.googleusercontent.com",
+    "client_id": "755081361679-9l37cku2v462o7ffbbeo5r4q2vompc27.apps.googleusercontent.com",
     "scopes": [
       "openid",
       "email",
