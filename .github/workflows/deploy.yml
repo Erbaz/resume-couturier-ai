@@ -46,4 +46,5 @@ jobs:
             --max-instances 10 \
             --allow-unauthenticated \
             --platform managed \
+            --port 8000 \
             --set-env-vars GOOGLE_CLOUD_PROJECT_ID=${{ env.PROJECT_ID }},GOOGLE_OAUTH_CLIENT_ID=${{ env.GOOGLE_OAUTH_CLIENT_ID }}
