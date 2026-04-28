@@ -43,7 +43,7 @@ jobs:
             --image ${{ env.IMAGE }}:${{ github.event.release.tag_name }} \
             --region ${{ env.REGION }} \
             --min-instances 0 \
-            --max-instances 10 \
+            --max-instances 1 \
             --allow-unauthenticated \
             --platform managed \
             --port 8000 \

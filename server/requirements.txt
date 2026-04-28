@@ -1,7 +1,6 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
 uvicorn
-ats-resume-scorer
 pypdf
 python-docx
 python-multipart
@@ -9,3 +8,5 @@ google-auth
 requests
 python-dotenv
 click<8.1.8
+cachetools
+pytz

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Resume Couturier AI",
   "version": "1.0",
-  "description": "Chrome extension for Resume Couturier AI",
+  "description": "Tailor your resume and generate cover letters instantly using AI for jobs on LinkedIn, Indeed, and Glassdoor.",
   "action": {},
   "side_panel": {
     "default_path": "sidemenu.html"
@@ -41,6 +41,7 @@
     "webNavigation"
   ],
   "host_permissions": [
+    "https://resume-couturier-ai-server-755081361679.us-central1.run.app/*",
     "http://127.0.0.1:8000/*",
     "http://localhost:8000/*",
     "https://*.linkedin.com/*",

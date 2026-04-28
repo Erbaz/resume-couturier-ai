@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
-from middleware.authMiddleware import verify_google_oauth_token
+from middleware.rateLimitMiddleware import rate_limit_middleware
 
 router = APIRouter()
 
 @router.post("/auth")
-async def auth(token_data: dict = Depends(verify_google_oauth_token)):
+async def auth(token_data: dict = Depends(rate_limit_middleware)):
     """
     Endpoint protected by OAuth. 
     It requires a valid Google access token in the Authorization header.

@@ -1,10 +1,11 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import auth, resume
+from middleware.rateLimitMiddleware import rate_limit_middleware
 
 app = FastAPI(title="Resume Couturier API")
 
@@ -21,5 +22,5 @@ assets_dir = os.path.join(os.path.dirname(__file__), "assets")
 if os.path.isdir(assets_dir):
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-app.include_router(auth.router, tags=["Auth"])
-app.include_router(resume.router, prefix="/resume", tags=["Resume"])
+app.include_router(auth.router, tags=["Auth"], dependencies=[Depends(rate_limit_middleware)])
+app.include_router(resume.router, prefix="/resume", tags=["Resume"], dependencies=[Depends(rate_limit_middleware)])

@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from constants.latex_templates import templates
 from utils.latex import latex_to_pdf
 from utils.parsing import parse_file
-from middleware.authMiddleware import verify_google_oauth_token, security
+from middleware.rateLimitMiddleware import rate_limit_middleware
+from middleware.authMiddleware import security
 import requests
 import os
 import dotenv
@@ -26,7 +27,7 @@ router = APIRouter()
 
 
 @router.get("/latex-templates")
-async def get_latex_templates(token_data: dict = Depends(verify_google_oauth_token)):
+async def get_latex_templates(token_data: dict = Depends(rate_limit_middleware)):
 
     response = []
     for template in templates:
@@ -43,7 +44,7 @@ async def get_latex_templates(token_data: dict = Depends(verify_google_oauth_tok
 
 @router.post("/parse")
 async def parse_resume(
-    file: UploadFile = File(...), token_data: dict = Depends(verify_google_oauth_token)
+    file: UploadFile = File(...), token_data: dict = Depends(rate_limit_middleware)
 ):
     if not file.filename.lower().endswith((".pdf", ".docx")):
         raise HTTPException(
@@ -63,7 +64,7 @@ async def parse_resume(
 @router.post("/generate")
 async def generate_resume(
     body: GenerateResumeRequestBody,
-    token_data: dict = Depends(verify_google_oauth_token),
+    token_data: dict = Depends(rate_limit_middleware),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     gemini_model = body.gemini_model

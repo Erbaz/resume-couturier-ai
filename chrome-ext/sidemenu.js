@@ -3,6 +3,7 @@ const mainSection = document.getElementById('mainSection');
 const loginBtn = document.getElementById('loginBtn');
 const authError = document.getElementById('authError');
 const userLine = document.getElementById('userLine');
+const logoutBtn = document.getElementById('logoutBtn');
 
 const uploadSection = document.getElementById('uploadSection');
 const resumeFileInput = document.getElementById('resumeFileInput');
@@ -69,10 +70,13 @@ function showTemplateSection() {
 }
 
 function loadLatexTemplates() {
+  if (!authToken) return;
   setTemplatesStatus('Loading templates…', false);
   templatesList.innerHTML = '';
 
-  fetch(`${API_BASE}/resume/latex-templates`)
+  fetch(`${API_BASE}/resume/latex-templates`, {
+    headers: { Authorization: `Bearer ${authToken}` },
+  })
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
@@ -133,6 +137,7 @@ async function startPostLoginFlow() {
 
 function afterLogin(token) {
   authToken = token;
+  window.authToken = token; // Ensure api.js can see the token
   authError.textContent = '';
   setParseStatus('', false);
   showMainView();
@@ -173,6 +178,18 @@ function requestLogin(interactive) {
 }
 
 loginBtn.addEventListener('click', () => requestLogin(true));
+
+logoutBtn.addEventListener('click', () => {
+  if (authToken) {
+    chrome.identity.removeCachedAuthToken({ token: authToken }, () => {
+      authToken = null;
+      userLine.textContent = '';
+      showAuthView();
+    });
+  } else {
+    showAuthView();
+  }
+});
 
 parseBtn.addEventListener('click', async () => {
   const file = resumeFileInput.files?.[0];
