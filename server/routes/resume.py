@@ -5,12 +5,17 @@ from constants.latex_templates import templates
 from utils.latex import latex_to_pdf
 from utils.parsing import parse_file
 from middleware.rateLimitMiddleware import rate_limit_middleware
+from middleware.authMiddleware import verify_google_oauth_token
 from middleware.authMiddleware import security
 import requests
 import os
 import dotenv
 import re
 import urllib.parse
+from constants.sys_prompt import SYS_PROMPT_FOR_LLM
+from services.cache import request_cache
+from utils.google_auth import get_google_auth_token
+import httpx
 dotenv.load_dotenv()
 
 
@@ -27,7 +32,7 @@ router = APIRouter()
 
 
 @router.get("/latex-templates")
-async def get_latex_templates(token_data: dict = Depends(rate_limit_middleware)):
+async def get_latex_templates(token_data: dict = Depends(verify_google_oauth_token)):
 
     response = []
     for template in templates:
@@ -44,7 +49,7 @@ async def get_latex_templates(token_data: dict = Depends(rate_limit_middleware))
 
 @router.post("/parse")
 async def parse_resume(
-    file: UploadFile = File(...), token_data: dict = Depends(rate_limit_middleware)
+    file: UploadFile = File(...), token_data: dict = Depends(verify_google_oauth_token)
 ):
     if not file.filename.lower().endswith((".pdf", ".docx")):
         raise HTTPException(
@@ -81,31 +86,24 @@ async def generate_resume(
     if not latex_template:
         raise HTTPException(status_code=400, detail="Either template_id or template_latex must be provided")
 
-    final_prompt = f"""
-    Use the given information to construct a finalized latex code followed by a cover letter. Your output format should be the following two code blocks ONLY:
-    ```latex
-    <The Latex Code>
-    ```
-    ```markdown
-    <Cover Letter>
-    ```
-    
-    YOU MUST NOT SAY ANYTHING ELSE.
-    
-    IMPORTANT RULES:
-    1. Do not make changes in the code structure or stylistics in the latex code provided. Only update the content in the section. 
-    2. Update the content using the user information and job description. Your result it going to be evaluated for ATS scores so make sure updates are relevant, clean and accurate.
-    3. Remove any sections that are not applicable, or user information does not contain content enough to fill it.
-    4. Do not add details not present in the user information.
-    5. Ensure all special characters like `&` are escaped as `\&`.
-    6. Do not include any other text outside the two code blocks.
-    7. You may only make exception to these rules if additional instructions are provided.
+    final_prompt = SYS_PROMPT_FOR_LLM.format(
+        user_info=body.user_info,
+        job_desc=body.job_desc,
+        custom_instructions=body.custom_instructions,
+        latex_template=latex_template
+    )
 
-    user infromation: {body.user_info}
-    job description: {body.job_desc}
-    additional instructions: {body.custom_instructions}
-    template: {latex_template}
-    """
+    # check for model's per day project limit
+    input_tokens = request_cache.estimate_input_tokens(final_prompt, gemini_model)
+    model_limit = request_cache.get_model_remaining_tokens(gemini_model)
+    # we will use a ballpark estimate of 2500 output tokens that safely makes sure the request does not cross our project limits
+    if model_limit["remaining_input_tokens"] - input_tokens <= 0 and model_limit["remaining_output_tokens"] - 2500 <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Model daily token budget reached. Please try again tomorrow.",
+            headers={"x-rate-limit-flag": "true"}
+        )
+
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
     if not project_id:
@@ -114,14 +112,32 @@ async def generate_resume(
         )
 
     token = credentials.credentials
-    print(f"token: {token}")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent"
+    vertex_api_key = os.getenv("VERTEX_API_KEY")
+
+    # Vertex AI Platform endpoint
+    url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{gemini_model}:generateContent"
+
     headers = {
-        "Authorization": f"Bearer {token}",
         "x-goog-user-project": project_id,
         "Content-Type": "application/json",
     }
+    
+    # Authenticate: Use API Key if available, otherwise use ADC (Service Account)
+    if vertex_api_key:
+        url += f"?key={vertex_api_key}"
+    else:
+        try:
+            adc_token = get_google_auth_token()
+            headers["Authorization"] = f"Bearer {adc_token}"
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to fetch ADC token: {str(e)}"
+            )
+
     data = {"contents": [{"parts": [{"text": final_prompt}]}]}
+    
+    total_input_tokens = 0
+    total_output_tokens = 0
 
     ai_response = requests.post(url, headers=headers, json=data)
     
@@ -132,6 +148,10 @@ async def generate_resume(
         )
 
     result = ai_response.json()
+    usage = result.get("usageMetadata", {})
+    total_input_tokens += usage.get("promptTokenCount", 0)
+    total_output_tokens += usage.get("candidatesTokenCount", 0)
+
     try:
         raw_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
@@ -178,7 +198,12 @@ async def generate_resume(
         )
 
     try:
-        missing_keywords_raw = missing_keywords_response.json()["candidates"][0][
+        missing_keywords_result = missing_keywords_response.json()
+        usage_kw = missing_keywords_result.get("usageMetadata", {})
+        total_input_tokens += usage_kw.get("promptTokenCount", 0)
+        total_output_tokens += usage_kw.get("candidatesTokenCount", 0)
+
+        missing_keywords_raw = missing_keywords_result["candidates"][0][
             "content"
         ]["parts"][0]["text"]
     except (KeyError, IndexError):
@@ -193,6 +218,13 @@ async def generate_resume(
             for line in missing_keywords_raw.splitlines()
             if line.strip(" -*\t")
         ]
+    )
+
+    # Update token budgets in cache
+    request_cache.update_model_token_budget(
+        gemini_model, 
+        input_tokens=total_input_tokens, 
+        output_tokens=total_output_tokens
     )
 
     response_headers = {}

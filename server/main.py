@@ -22,5 +22,5 @@ assets_dir = os.path.join(os.path.dirname(__file__), "assets")
 if os.path.isdir(assets_dir):
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-app.include_router(auth.router, tags=["Auth"], dependencies=[Depends(rate_limit_middleware)])
-app.include_router(resume.router, prefix="/resume", tags=["Resume"], dependencies=[Depends(rate_limit_middleware)])
+app.include_router(auth.router, tags=["Auth"])
+app.include_router(resume.router, prefix="/resume", tags=["Resume"])
