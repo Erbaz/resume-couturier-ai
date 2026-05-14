@@ -69,8 +69,8 @@ class RequestCacheManager:
     def update_model_token_budget(self, model_name, input_tokens = 0, output_tokens = 0):
         self._check_and_reset_cache()
         if model_name in self.cache:
-            self.cache[model_name]["remaining_input_tokens"] -= max(0, self.cache[model_name]["remaining_input_tokens"] - input_tokens)
-            self.cache[model_name]["remaining_output_tokens"] -= max(0, self.cache[model_name]["remaining_output_tokens"] - output_tokens)
+            self.cache[model_name]["remaining_input_tokens"] = max(0, self.cache[model_name]["remaining_input_tokens"] - input_tokens)
+            self.cache[model_name]["remaining_output_tokens"] = max(0, self.cache[model_name]["remaining_output_tokens"] - output_tokens)
 
     def get_model_remaining_tokens(self, model_name):
         self._check_and_reset_cache()

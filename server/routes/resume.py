@@ -13,7 +13,7 @@ import dotenv
 import re
 import urllib.parse
 from constants.sys_prompt import SYS_PROMPT_FOR_LLM
-from services.cache import request_cache
+from utils.cache_manager import request_cache
 from utils.google_auth import get_google_auth_token
 import httpx
 dotenv.load_dotenv()
@@ -106,40 +106,60 @@ async def generate_resume(
 
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
-    if not project_id:
-        raise HTTPException(
-            status_code=500, detail="GOOGLE_CLOUD_PROJECT_ID is not configured in .env"
-        )
-
+    
     token = credentials.credentials
     vertex_api_key = os.getenv("VERTEX_API_KEY")
 
-    # Vertex AI Platform endpoint
-    url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{gemini_model}:generateContent"
-
-    headers = {
-        "x-goog-user-project": project_id,
-        "Content-Type": "application/json",
-    }
-    
     # Authenticate: Use API Key if available, otherwise use ADC (Service Account)
+    auth_headers = {}
     if vertex_api_key:
-        url += f"?key={vertex_api_key}"
+        # For API key, project_id is often not needed, but we keep it if configured
+        if project_id:
+            auth_headers["x-goog-user-project"] = project_id
     else:
         try:
-            adc_token = get_google_auth_token()
-            headers["Authorization"] = f"Bearer {adc_token}"
+            adc_token, adc_project = get_google_auth_token()
+            auth_headers["Authorization"] = f"Bearer {adc_token}"
+            # x-goog-user-project is CRITICAL for ADC to identify the billing/quota project
+            # We use the project from ADC if the environment variable is missing
+            project_id = project_id or adc_project
+            if project_id:
+                auth_headers["x-goog-user-project"] = project_id
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to fetch ADC token: {str(e)}"
             )
 
-    data = {"contents": [{"parts": [{"text": final_prompt}]}]}
+    if not project_id and not vertex_api_key:
+         raise HTTPException(
+            status_code=500, detail="Project ID could not be determined for ADC. Set GOOGLE_CLOUD_PROJECT_ID."
+        )
+
+    # Vertex AI Platform endpoint
+    url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{gemini_model}:generateContent"
+    if vertex_api_key:
+        url += f"?key={vertex_api_key}"
+
+    headers = {
+        **auth_headers,
+        "Content-Type": "application/json",
+    }
+
+    data = {
+        "contents": [{"role": "user", "parts": [{"text": final_prompt}]}],
+        "generationConfig": {
+            "thinkingConfig": {
+                "thinkingBudget": 0
+            }
+        }
+    }
+
     
     total_input_tokens = 0
     total_output_tokens = 0
 
-    ai_response = requests.post(url, headers=headers, json=data)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        ai_response = await client.post(url, headers=headers, json=data)
     
     if ai_response.status_code != 200:
         raise HTTPException(
@@ -153,7 +173,19 @@ async def generate_resume(
     total_output_tokens += usage.get("candidatesTokenCount", 0)
 
     try:
-        raw_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+        candidate = result.get("candidates", [{}])[0]
+        content = candidate.get("content", {})
+        parts = content.get("parts", [])
+        
+        # Robustly join all text parts (skipping thoughts or other non-text parts if present)
+        raw_text = "".join([part.get("text", "") for part in parts]).strip()
+        
+        if not raw_text:
+            finish_reason = candidate.get("finishReason", "UNKNOWN")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Model returned no text. Finish reason: {finish_reason}"
+            )
 
         # Split into latex and cover letter sections
         latex_match = re.search(r'```latex\s*(.*?)\s*```', raw_text, re.DOTALL)
@@ -185,11 +217,18 @@ async def generate_resume(
     {body.job_desc}
     """
     missing_keywords_data = {
-        "contents": [{"parts": [{"text": missing_keywords_prompt}]}]
+        "contents": [{"role": "user", "parts": [{"text": missing_keywords_prompt}]}],
+        "generationConfig": {
+            "thinkingConfig": {
+                "thinkingBudget": 0
+            }
+        }
     }
-    missing_keywords_response = requests.post(
-        url, headers=headers, json=missing_keywords_data
-    )
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        missing_keywords_response = await client.post(
+            url, headers=headers, json=missing_keywords_data
+        )
 
     if missing_keywords_response.status_code != 200:
         raise HTTPException(
@@ -203,9 +242,9 @@ async def generate_resume(
         total_input_tokens += usage_kw.get("promptTokenCount", 0)
         total_output_tokens += usage_kw.get("candidatesTokenCount", 0)
 
-        missing_keywords_raw = missing_keywords_result["candidates"][0][
-            "content"
-        ]["parts"][0]["text"]
+        parts_kw = missing_keywords_result.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+
+        missing_keywords_raw = "".join([p.get("text", "") for p in parts_kw]).strip()
     except (KeyError, IndexError):
         raise HTTPException(
             status_code=500, detail="Unexpected response format from Google API"
