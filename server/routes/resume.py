@@ -41,6 +41,7 @@ async def get_latex_templates(token_data: dict = Depends(verify_google_oauth_tok
             {
                 "id": template["id"],
                 "name": template["name"],
+                "link": template["link"],
                 "thumbnail": template["thumbnail"],
             }
         )
