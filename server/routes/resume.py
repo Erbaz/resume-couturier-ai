@@ -96,6 +96,13 @@ async def generate_resume(
     # check for model's per day project limit
     input_tokens = request_cache.estimate_input_tokens(final_prompt, gemini_model)
     model_limit = request_cache.get_model_remaining_tokens(gemini_model)
+    
+    if not model_limit:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model {gemini_model} is not supported or pricing data is missing."
+        )
+
     # we will use a ballpark estimate of 2500 output tokens that safely makes sure the request does not cross our project limits
     if model_limit["remaining_input_tokens"] - input_tokens <= 0 and model_limit["remaining_output_tokens"] - 2500 <= 0:
         raise HTTPException(

@@ -21,8 +21,6 @@ class RequestCacheManager:
             cls._instance.cache = TTLCache(maxsize=10000, ttl=86400)
             cls._instance.current_day = cls._instance._get_current_pt_day()
             
-            # Character-to-token ratios for different models
-            # Gemini typically averages around 4 characters per token for English.
             cls._instance.token_ratios = {
                 GEMINI_3_1_PRO_PREVIEW: 3.8,
                 GEMINI_3_1_FLASH_LITE_PREVIEW: 4.0,
@@ -31,6 +29,7 @@ class RequestCacheManager:
                 GEMINI_2_5_FLASH: 4.0,
                 GEMINI_2_5_FLASH_LITE: 4.2,
             }
+            cls._instance.init_model_token_budgets()
         return cls._instance
 
     def _get_current_pt_day(self):
@@ -68,12 +67,18 @@ class RequestCacheManager:
         
     def update_model_token_budget(self, model_name, input_tokens = 0, output_tokens = 0):
         self._check_and_reset_cache()
+        if model_name not in self.cache:
+            self.init_model_token_budgets()
+            
         if model_name in self.cache:
             self.cache[model_name]["remaining_input_tokens"] = max(0, self.cache[model_name]["remaining_input_tokens"] - input_tokens)
             self.cache[model_name]["remaining_output_tokens"] = max(0, self.cache[model_name]["remaining_output_tokens"] - output_tokens)
 
     def get_model_remaining_tokens(self, model_name):
         self._check_and_reset_cache()
+        if model_name not in self.cache:
+            self.init_model_token_budgets()
+            
         if model_name in self.cache:
             return {
                 "remaining_input_tokens": self.cache[model_name]["remaining_input_tokens"],

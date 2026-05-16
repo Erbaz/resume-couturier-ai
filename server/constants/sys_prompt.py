@@ -1,4 +1,4 @@
-SYS_PROMPT_FOR_LLM = f"""
+SYS_PROMPT_FOR_LLM = """
     Use the given information to construct a finalized latex code followed by a cover letter. Your output format should be the following two code blocks ONLY:
     ```latex
     <The Latex Code>
@@ -18,8 +18,8 @@ SYS_PROMPT_FOR_LLM = f"""
     6. Do not include any other text outside the two code blocks.
     7. You may only make exception to these rules if additional instructions are provided.
 
-    user infromation: {body.user_info}
-    job description: {body.job_desc}
-    additional instructions: {body.custom_instructions}
+    user information: {user_info}
+    job description: {job_desc}
+    additional instructions: {custom_instructions}
     template: {latex_template}
     """
