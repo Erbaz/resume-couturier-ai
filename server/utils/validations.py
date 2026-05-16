@@ -30,16 +30,20 @@ def validate_resume_generation_input(
         raise HTTPException(status_code=400, detail="custom_instructions exceeds 5000 characters.")
 
     # 2. Code Pattern Detection
-    # We use a set of patterns that are typical for programming languages but rare in natural text or LaTeX content (except for the keywords themselves).
-    # We focus on structural patterns like function definitions, imports, and script tags.
+    # We use patterns that specifically look for code structures rather than just keywords.
+    # This avoids false positives for common English words like "from", "return", or "class".
     forbidden_code_patterns = [
-        r'\b(def|class|function|var|let|const|import|from|async|await|return|public|private|static|extern)\b\s+[\w_]',
-        r'<script.*?>',
+        r'<(script|iframe|object|embed|applet).*?>',
         r'<\?php',
         r'#include\s+<.*>',
-        r'\w+\s*\(.*\)\s*\{', # e.g., myFunc() {
+        r'\b(def|function)\s+\w+\s*\(', # Python/JS function definitions
+        r'\b(var|let|const)\s+\w+\s*=',  # JS variable assignments
         r'System\.out\.println',
         r'console\.log',
+        r'\w+\s*\(.*\)\s*\{', # C-style function definitions
+        r'\b(public|private|protected)\s+class\s+\w+', # Java/C# class definitions
+        r'\bimport\s+[\w\.]+\s*;', # Java/other imports with semicolons
+        r'\bfrom\s+[\w\.]+\s+import\s+[\w\.]+', # Python imports
     ]
 
     def check_for_code(text, field_name):
