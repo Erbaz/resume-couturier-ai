@@ -10,3 +10,4 @@ python-dotenv
 click<8.1.8
 cachetools
 pytz
+httpx
