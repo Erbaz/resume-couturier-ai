@@ -15,6 +15,7 @@ import urllib.parse
 from constants.sys_prompt import SYS_PROMPT_FOR_LLM
 from utils.cache_manager import request_cache
 from utils.google_auth import get_google_auth_token
+from utils.validations import validate_resume_generation_input
 import httpx
 dotenv.load_dotenv()
 
@@ -22,7 +23,7 @@ dotenv.load_dotenv()
 class GenerateResumeRequestBody(BaseModel):
     user_info: str
     job_desc: str
-    custom_instructions: str
+    custom_instructions: str | None = None
     gemini_model: str = "gemini-2.5-flash"
     template_id: str | None = None
     template_latex: str | None = None
@@ -72,6 +73,14 @@ async def generate_resume(
     token_data: dict = Depends(rate_limit_middleware),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
+    # Validate input
+    validate_resume_generation_input(
+        user_info=body.user_info,
+        job_desc=body.job_desc,
+        custom_instructions=body.custom_instructions,
+        template_latex=body.template_latex
+    )
+
     gemini_model = body.gemini_model
     
     latex_template = None
