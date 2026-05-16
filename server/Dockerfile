@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-extra \
     texlive-fonts-extra \
     texlive-bibtex-extra \
+    texlive-plain-generic \
     biber \
     curl \
     && apt-get clean \
