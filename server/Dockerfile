@@ -27,8 +27,6 @@ COPY requirements.txt .
 RUN pip install --default-timeout=2000 --no-cache-dir -r requirements.txt
 
 
-RUN python -m spacy download en_core_web_sm
-
 # Copy the rest of the application code into the container
 COPY . .
 
