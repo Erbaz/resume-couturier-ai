@@ -47,4 +47,4 @@ jobs:
             --allow-unauthenticated \
             --platform managed \
             --port 8000 \
-            --set-env-vars GOOGLE_CLOUD_PROJECT_ID=${{ env.PROJECT_ID }},GOOGLE_OAUTH_CLIENT_ID=${{ env.GOOGLE_OAUTH_CLIENT_ID }}
+            --set-env-vars "GOOGLE_CLOUD_PROJECT_ID=${{ vars.GOOGLE_CLOUD_PROJECT_ID }},GOOGLE_CLOUD_LOCATION=${{ vars.GOOGLE_CLOUD_LOCATION }},GOOGLE_OAUTH_CLIENT_ID=${{ vars.GOOGLE_OAUTH_CLIENT_ID }},RATE_LIMIT_PER_USER=${{ vars.RATE_LIMIT_PER_USER }},GEMINI_DAILY_BUDGET_USD=${{ vars.GEMINI_DAILY_BUDGET_USD }}"

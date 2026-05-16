@@ -143,7 +143,9 @@ async def generate_resume(
         )
 
     # Vertex AI Platform endpoint
-    url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{gemini_model}:generateContent"
+    location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{gemini_model}:generateContent"
+    print("target Vertex URL", url)
     if vertex_api_key:
         url += f"?key={vertex_api_key}"
 
