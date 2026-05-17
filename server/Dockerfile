@@ -12,14 +12,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base \
     texlive-latex-recommended \
     texlive-fonts-recommended \
+    curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    
+RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-extra \
+    texlive-plain-generic \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-fonts-extra \
     texlive-bibtex-extra \
-    texlive-plain-generic \
+    tex-gyre \
     biber \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file into the container
 COPY requirements.txt .
