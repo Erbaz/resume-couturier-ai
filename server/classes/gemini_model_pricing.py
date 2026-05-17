@@ -4,7 +4,6 @@ from constants.gemini_models import (
     GEMINI_3_1_PRO_PREVIEW,
     GEMINI_3_1_FLASH_LITE_PREVIEW,
     GEMINI_3_FLASH_PREVIEW,
-    GEMINI_2_5_PRO,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_FLASH_LITE
 )
@@ -46,10 +45,6 @@ class GeminiModelPricing:
             GEMINI_3_FLASH_PREVIEW: {
                 "input_tokens_per_1M_usd": 0.50,
                 "output_tokens_per_1M_usd": 3.00,
-            },
-            GEMINI_2_5_PRO: {
-                "input_tokens_per_1M_usd": 1.25,
-                "output_tokens_per_1M_usd": 10.00,
             },
             GEMINI_2_5_FLASH: {
                 "input_tokens_per_1M_usd": 0.30,

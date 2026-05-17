@@ -6,7 +6,6 @@ from constants.gemini_models import (
     GEMINI_3_1_PRO_PREVIEW,
     GEMINI_3_1_FLASH_LITE_PREVIEW,
     GEMINI_3_FLASH_PREVIEW,
-    GEMINI_2_5_PRO,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_FLASH_LITE
 )
@@ -25,7 +24,6 @@ class RequestCacheManager:
                 GEMINI_3_1_PRO_PREVIEW: 3.8,
                 GEMINI_3_1_FLASH_LITE_PREVIEW: 4.0,
                 GEMINI_3_FLASH_PREVIEW: 4.0,
-                GEMINI_2_5_PRO: 3.8,
                 GEMINI_2_5_FLASH: 4.0,
                 GEMINI_2_5_FLASH_LITE: 4.2,
             }
