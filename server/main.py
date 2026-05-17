@@ -1,5 +1,6 @@
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,12 +8,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes import auth, privacy, resume
 from middleware.rateLimitMiddleware import rate_limit_middleware
 
+load_dotenv()
+
+chrome_extension_ids = [
+    ext_id.strip()
+    for ext_id in os.getenv("CHROME_EXTENSION_ID", "").split(",")
+    if ext_id.strip()
+]
+if not chrome_extension_ids:
+    raise RuntimeError(
+        "CHROME_EXTENSION_ID must be set (comma-separated Chrome extension IDs for CORS)."
+    )
+
 app = FastAPI(title="Resume Couturier API")
 
-# Add CORS middleware to allow all origins for now
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[f"chrome-extension://{ext_id}" for ext_id in chrome_extension_ids],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
