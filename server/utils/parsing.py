@@ -17,8 +17,6 @@ def parse_file(file_bytes: bytes, filename: str) -> str:
             text = (page.extract_text() or "").strip()
             if text:
                 pages.append(text)
-        print(" ----parsed pdf text----")
-        print("\n\n".join(pages))
         return "\n\n".join(pages)
 
     if ext == ".docx":

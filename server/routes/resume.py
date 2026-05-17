@@ -155,7 +155,6 @@ async def generate_resume(
     # Vertex AI Platform endpoint
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
     url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{gemini_model}:generateContent"
-    print("target Vertex URL", url)
     if vertex_api_key:
         url += f"?key={vertex_api_key}"
 
@@ -216,10 +215,6 @@ async def generate_resume(
         raise HTTPException(
             status_code=500, detail="Unexpected response format from Google API"
         )
-
-    print(f"generated_latex: {generated_latex}")
-    print(f"generated_cover_letter: {generated_cover_letter}")
-
 
     pdf_bytes = latex_to_pdf(generated_latex)
     if not pdf_bytes:
@@ -289,7 +284,6 @@ async def generate_resume(
     if missing_keywords:
         # Use URL-encoding to avoid UnicodeEncodeError in headers
         response_headers["X-ATS-Missing-Keywords"] = urllib.parse.quote(missing_keywords)
-        print(f"ATS Missing Keywords:\n{missing_keywords}")
 
     if generated_cover_letter:
         # Use URL-encoding to avoid UnicodeEncodeError in headers
