@@ -16,7 +16,7 @@ def validate_resume_generation_input(
     - user_info: max 10000 chars, no code patterns.
     - job_desc: max 10000 chars, no code patterns.
     - custom_instructions: max 5000 chars, no code patterns.
-    - template_latex: optional, must be valid LaTeX, no other code patterns, max 3 pages.
+    - template_latex: optional, max 100000 chars, must be valid LaTeX, no other code patterns, max 3 pages.
     """
     
     # 1. Length Validations
@@ -63,6 +63,9 @@ def validate_resume_generation_input(
 
     # 3. LaTeX Validation
     if template_latex:
+        if len(template_latex) > 100000:
+            raise HTTPException(status_code=400, detail="template_latex exceeds 100000 characters.")
+
         # Check for non-latex code patterns
         check_for_code(template_latex, "template_latex")
         
