@@ -10,21 +10,15 @@ from middleware.rateLimitMiddleware import rate_limit_middleware
 
 load_dotenv()
 
-chrome_extension_ids = [
-    ext_id.strip()
-    for ext_id in os.getenv("CHROME_EXTENSION_ID", "").split(",")
-    if ext_id.strip()
-]
-if not chrome_extension_ids:
-    raise RuntimeError(
-        "CHROME_EXTENSION_ID must be set (comma-separated Chrome extension IDs for CORS)."
-    )
+chrome_extension_id = os.getenv("CHROME_EXTENSION_ID", "").strip()
+if not chrome_extension_id:
+    raise RuntimeError("CHROME_EXTENSION_ID must be set.")
 
 app = FastAPI(title="Resume Couturier API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"chrome-extension://{ext_id}" for ext_id in chrome_extension_ids],
+    allow_origins=[f"chrome-extension://{chrome_extension_id}"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

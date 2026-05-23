@@ -30,10 +30,9 @@ def verify_google_oauth_token(credentials: HTTPAuthorizationCredentials = Depend
         
     token_info = response.json()
     
-    expected_client_ids_str = os.getenv("GOOGLE_OAUTH_CLIENT_IDS") or os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
-    expected_client_ids = [cid.strip() for cid in expected_client_ids_str.split(",") if cid.strip()]
+    expected_client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
     
-    if token_info.get("aud") not in expected_client_ids:
+    if token_info.get("aud") != expected_client_id:
         raise HTTPException(status_code=401, detail="Token was not issued for this application.")
 
     return token_info
