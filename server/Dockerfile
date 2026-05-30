@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base \
     texlive-latex-recommended \
     texlive-fonts-recommended \
+    lmodern \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
     

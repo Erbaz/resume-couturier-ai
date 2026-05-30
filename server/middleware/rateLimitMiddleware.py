@@ -1,7 +1,7 @@
 import os
 from fastapi import Depends, HTTPException, status, Response
 from middleware.authMiddleware import verify_google_oauth_token
-from utils.cache_manager import request_cache
+from utils.cache_manager import user_request_manager
 
 def rate_limit_middleware(body: dict, response: Response, token_info: dict = Depends(verify_google_oauth_token)):
     """
@@ -10,9 +10,10 @@ def rate_limit_middleware(body: dict, response: Response, token_info: dict = Dep
     Blocks the request if the daily limit is exceeded.
     """
     email = token_info.get("email")
+    print(f"[RATE_LIMIT_MIDDLEWARE] Invoked for email={email}", flush=True)
     if email:
         # Increment and get the current count
-        count = request_cache.increment_user_request(email)
+        count = user_request_manager.increment_user_request(email)
         
         # Get the limit from environment variables
         limit_str = os.getenv("RATE_LIMIT_PER_USER")
@@ -20,6 +21,7 @@ def rate_limit_middleware(body: dict, response: Response, token_info: dict = Dep
             limit = int(limit_str) if limit_str else 50  # Default to 50 if not set
         except ValueError:
             limit = 50
+        print(f"[RATE_LIMIT_MIDDLEWARE] email={email}, count={count}, limit={limit}", flush=True)
 
         # If the threshold is reached, add the flag to headers
         if count >= limit:

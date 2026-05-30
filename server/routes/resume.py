@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response, UploadFile, File, Depends, Form
+from fastapi import APIRouter, HTTPException, Response, UploadFile, File, Depends, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from constants.latex_templates import templates
@@ -13,7 +13,7 @@ import dotenv
 import re
 import urllib.parse
 from constants.sys_prompt import SYS_PROMPT_FOR_LLM
-from utils.cache_manager import request_cache
+from utils.cache_manager import user_request_manager
 from utils.google_auth import get_google_auth_token
 from utils.validations import validate_resume_generation_input
 import httpx
@@ -104,8 +104,8 @@ async def generate_resume(
     )
 
     # check for model's per day project limit
-    input_tokens = request_cache.estimate_input_tokens(final_prompt, gemini_model)
-    model_limit = request_cache.get_model_remaining_tokens(gemini_model)
+    input_tokens = user_request_manager.estimate_input_tokens(final_prompt, gemini_model)
+    model_limit = user_request_manager.get_model_remaining_tokens(gemini_model)
     
     if not model_limit:
         raise HTTPException(
@@ -273,7 +273,7 @@ async def generate_resume(
     )
 
     # Update token budgets in cache
-    request_cache.update_model_token_budget(
+    user_request_manager.update_model_token_budget(
         gemini_model, 
         input_tokens=total_input_tokens, 
         output_tokens=total_output_tokens

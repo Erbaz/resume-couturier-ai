@@ -1,7 +1,8 @@
-import datetime
-import pytz
-from cachetools import TTLCache
+from google.cloud import firestore
 from classes.gemini_model_pricing import GeminiModelPricing
+from classes.user import User
+from classes.model_token_budget import ModelTokenBudget
+from db.collections import users_collection, model_token_budgets_collection
 from constants.gemini_models import (
     GEMINI_3_1_PRO_PREVIEW,
     GEMINI_3_1_FLASH_LITE_PREVIEW,
@@ -10,16 +11,12 @@ from constants.gemini_models import (
     GEMINI_2_5_FLASH_LITE
 )
 
-class RequestCacheManager:
+class UserRequestManager:
     _instance = None
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(RequestCacheManager, cls).__new__(cls)
-            # maxsize to 10000 users, ttl to 24 hours (86400 seconds)
-            cls._instance.cache = TTLCache(maxsize=10000, ttl=86400)
-            cls._instance.current_day = cls._instance._get_current_pt_day()
-            
+            cls._instance = super(UserRequestManager, cls).__new__(cls)
             cls._instance.token_ratios = {
                 GEMINI_3_1_PRO_PREVIEW: 3.8,
                 GEMINI_3_1_FLASH_LITE_PREVIEW: 4.0,
@@ -27,71 +24,97 @@ class RequestCacheManager:
                 GEMINI_2_5_FLASH: 4.0,
                 GEMINI_2_5_FLASH_LITE: 4.2,
             }
+            # Initialize budgets if they don't exist in Firestore
             cls._instance.init_model_token_budgets()
         return cls._instance
 
-    def _get_current_pt_day(self):
-        # GCP quota resets at midnight Pacific Time
-        pt_tz = pytz.timezone("America/Los_Angeles")
-        return datetime.datetime.now(pt_tz).date()
-
-    def _check_and_reset_cache(self):
-        current_day = self._get_current_pt_day()
-        if current_day != self.current_day:
-            self.cache.clear()
-            self.current_day = current_day
-            self.init_model_token_budgets()
-
     def increment_user_request(self, email: str):
-        self._check_and_reset_cache()
-        if email in self.cache:
-            self.cache[email] += 1
-        else:
-            self.cache[email] = 1
-        return self.cache[email]
+        docs = users_collection.where("email", "==", email).stream()
+        doc_found = False
+        current_count = 0
+        
+        for doc in docs:
+            doc_found = True
+            current_count = doc.to_dict().get("request_count", 0)
+            doc.reference.update({"request_count": firestore.Increment(1)})
+            break
+            
+        if not doc_found:
+            new_user = User(email=email, request_count=1)
+            users_collection.add(new_user.to_dict())
+            current_count = 0
+            
+        new_count = current_count + 1
+        print(f"[USER_REQUEST_MANAGER] increment_user_request: email={email}, count={new_count}", flush=True)
+        return new_count
     
     def get_user_request_count(self, email: str):
-        self._check_and_reset_cache()
-        return self.cache.get(email, 0)
+        docs = users_collection.where("email", "==", email).stream()
+        for doc in docs:
+            return doc.to_dict().get("request_count", 0)
+        return 0
 
-    
     def init_model_token_budgets(self):
         gemini_pricing_model = GeminiModelPricing()
         for model_name, model_data in gemini_pricing_model.models.items():
-            self.cache[model_name] = { 
-                "remaining_input_tokens": model_data["daily_project_input_token_budget"], 
-                "remaining_output_tokens": model_data["daily_project_output_token_budget"]
-            }
+            input_budget = model_data["daily_project_input_token_budget"]
+            output_budget = model_data["daily_project_output_token_budget"]
+            
+            docs = model_token_budgets_collection.where("model_name", "==", model_name).stream()
+            doc_found = False
+            for doc in docs:
+                doc_found = True
+                break
+            
+            if not doc_found:
+                new_budget = ModelTokenBudget(
+                    model_name=model_name,
+                    remaining_input_tokens=input_budget,
+                    remaining_output_tokens=output_budget
+                )
+                model_token_budgets_collection.add(new_budget.to_dict())
         
     def update_model_token_budget(self, model_name, input_tokens = 0, output_tokens = 0):
-        self._check_and_reset_cache()
-        if model_name not in self.cache:
-            self.init_model_token_budgets()
+        docs = model_token_budgets_collection.where("model_name", "==", model_name).stream()
+        doc_found = False
+        for doc in docs:
+            doc_found = True
+            doc.reference.update({
+                "remaining_input_tokens": firestore.Increment(-input_tokens),
+                "remaining_output_tokens": firestore.Increment(-output_tokens)
+            })
+            break
             
-        if model_name in self.cache:
-            self.cache[model_name]["remaining_input_tokens"] = max(0, self.cache[model_name]["remaining_input_tokens"] - input_tokens)
-            self.cache[model_name]["remaining_output_tokens"] = max(0, self.cache[model_name]["remaining_output_tokens"] - output_tokens)
+        if not doc_found:
+            self.init_model_token_budgets()
+            self.update_model_token_budget(model_name, input_tokens, output_tokens)
 
     def get_model_remaining_tokens(self, model_name):
-        self._check_and_reset_cache()
-        if model_name not in self.cache:
-            self.init_model_token_budgets()
-            
-        if model_name in self.cache:
+        docs = model_token_budgets_collection.where("model_name", "==", model_name).stream()
+        for doc in docs:
+            data = doc.to_dict()
             return {
-                "remaining_input_tokens": self.cache[model_name]["remaining_input_tokens"],
-                "remaining_output_tokens": self.cache[model_name]["remaining_output_tokens"]
+                "remaining_input_tokens": data.get("remaining_input_tokens", 0),
+                "remaining_output_tokens": data.get("remaining_output_tokens", 0)
             }
+            
+        self.init_model_token_budgets()
+        # Retry after init
+        docs = model_token_budgets_collection.where("model_name", "==", model_name).stream()
+        for doc in docs:
+            data = doc.to_dict()
+            return {
+                "remaining_input_tokens": data.get("remaining_input_tokens", 0),
+                "remaining_output_tokens": data.get("remaining_output_tokens", 0)
+            }
+            
         return None
 
-        
     def estimate_input_tokens(self, text: str, model_name: str) -> int:
-        """
-        Estimate the number of input tokens for a given string and model.
-        Uses a conservative character-to-token ratio.
-        """
+        # Estimate the number of input tokens for a given string and model.
+        # Uses a conservative character-to-token ratio.
         ratio = self.token_ratios.get(model_name, 4.0)
         return int(len(text) / ratio) + 1
 
 
-request_cache = RequestCacheManager()
+user_request_manager = UserRequestManager()
