@@ -7,6 +7,8 @@ from utils.parsing import parse_file
 from middleware.rateLimitMiddleware import rate_limit_middleware
 from middleware.authMiddleware import verify_google_oauth_token
 from middleware.authMiddleware import security
+from utils.global_request_manager import global_request_manager
+from classes.gemini_model_pricing import GeminiModelPricing
 import requests
 import os
 import dotenv
@@ -278,6 +280,14 @@ async def generate_resume(
         input_tokens=total_input_tokens, 
         output_tokens=total_output_tokens
     )
+
+    # Caluclate the cost for the tokens and add it to the global budget tracker
+    pricing_info = GeminiModelPricing().models.get(gemini_model)
+    if pricing_info:
+        cost = (total_input_tokens / 1_000_000) * pricing_info["input_tokens_per_1M_usd"]
+        cost += (total_output_tokens / 1_000_000) * pricing_info["output_tokens_per_1M_usd"]
+        
+        global_request_manager.increment_gemini_budget(cost)
 
     response_headers = {}
     if missing_keywords:

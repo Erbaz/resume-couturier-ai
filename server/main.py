@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routes import auth, privacy, resume
 from middleware.rateLimitMiddleware import rate_limit_middleware
+from middleware.globalRateLimitMiddleware import global_rate_limit_middleware
 
 load_dotenv()
 
@@ -15,6 +16,8 @@ if not chrome_extension_id:
     raise RuntimeError("CHROME_EXTENSION_ID must be set.")
 
 app = FastAPI(title="Resume Couturier API")
+
+app.middleware("http")(global_rate_limit_middleware)
 
 app.add_middleware(
     CORSMiddleware,

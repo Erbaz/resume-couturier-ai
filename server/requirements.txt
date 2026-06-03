@@ -11,3 +11,4 @@ cachetools
 pytz
 httpx
 google-cloud-firestore
+google-cloud-pubsub
