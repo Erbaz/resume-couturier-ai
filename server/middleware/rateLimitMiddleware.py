@@ -1,9 +1,11 @@
+from datetime import timedelta
+from server.utils import get_la_start_of_day
 import os
 from fastapi import Depends, HTTPException, status, Response
 from middleware.authMiddleware import verify_google_oauth_token
 from utils.cache_manager import user_request_manager
 
-def rate_limit_middleware(body: dict, response: Response, token_info: dict = Depends(verify_google_oauth_token)):
+def rate_limit_middleware(response: Response, token_info: dict = Depends(verify_google_oauth_token)):
     """
     Middleware that runs after verify_google_oauth_token.
     Updates the request count in the cache for the given user email.
@@ -28,11 +30,13 @@ def rate_limit_middleware(body: dict, response: Response, token_info: dict = Dep
             response.headers["x-rate-limit-flag"] = "true"
 
         # If the threshold is exceeded, block the request
+        next_day = (get_la_start_of_day() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S %Z")
+        
         if count > limit:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Daily request limit reached. Please try again tomorrow.",
-                headers={"x-rate-limit-flag": "true"}
+                detail=f"Daily request limit reached. Please try again after {next_day}",
+                headers={"x-rate-limit-flag": "true", "x-rate-limit-retry-after": next_day}
             )        
             
 

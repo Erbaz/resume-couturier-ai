@@ -116,11 +116,11 @@ async def generate_resume(
         )
 
     # we will use a ballpark estimate of 2500 output tokens that safely makes sure the request does not cross our project limits
-    if model_limit["remaining_input_tokens"] - input_tokens <= 0 and model_limit["remaining_output_tokens"] - 2500 <= 0:
+    if model_limit["remaining_input_tokens"] - input_tokens <= 0 or model_limit["remaining_output_tokens"] - 2500 <= 0:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Model daily token budget reached. Please try again tomorrow.",
-            headers={"x-rate-limit-flag": "true"}
+            detail=f"The daily token budget for {gemini_model} has been reached. Please try selecting a different model.",
+            headers={"x-rate-limit-model": gemini_model}
         )
 
 
@@ -222,7 +222,7 @@ async def generate_resume(
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
     missing_keywords_prompt = f"""
-    evaluate and identify the missing key words in the resume (latex code) using the job description.
+    You are to perform ATS evaluation for the resume. Evaluate and identify the missing key words in the resume (provided as latex code) by comparing it with the job description.
     You will only respond with a list of missing keywords as a comma separated list. Say nothing else.
 
     resume:

@@ -122,4 +122,12 @@ class GlobalRequestManager:
         
         self._check_limits_and_trigger(gemini_budget, num_requests)
 
+    def get_current_state(self):
+        """Returns the current gemini_budget_utilized and number_of_requests."""
+        doc_ref, doc_data = self._get_daily_doc_ref()
+        if not doc_ref:
+            return 0.0, 0
+        gemini_budget, num_requests = self._check_and_reset_daily_budget(doc_data, doc_ref)
+        return gemini_budget, num_requests
+
 global_request_manager = GlobalRequestManager()

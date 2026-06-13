@@ -11,7 +11,7 @@ SYS_PROMPT_FOR_LLM = """
     
     IMPORTANT RULES:
     1. Do not make changes in the code structure or stylistics in the latex code provided. Only update the content in the section. 
-    2. Update the content using the user information and job description. Your result it going to be evaluated for ATS scores so make sure updates are relevant, clean and accurate.
+    2. Update the content using the user information and job description. Your result it going to be evaluated for ATS scores so make sure updates are relevant, clean and accurate, and use as many words that match those in the job-description.
     3. Remove any sections that are not applicable, or user information does not contain content enough to fill it.
     4. Do not add details not present in the user information except for additional information provided by user in additional instructions below.
     5. Make sure that any urls are correctly linked. If you cannot, do not add the links and do not mention them either so reader does not get a false hyperlink.

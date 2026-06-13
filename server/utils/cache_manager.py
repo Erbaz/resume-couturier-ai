@@ -32,11 +32,24 @@ class UserRequestManager:
         docs = users_collection.where("email", "==", email).stream()
         doc_found = False
         current_count = 0
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
         
         for doc in docs:
             doc_found = True
-            current_count = doc.to_dict().get("request_count", 0)
-            doc.reference.update({"request_count": firestore.Increment(1)})
+            data = doc.to_dict()
+            expires_at = data.get("expires_at")
+            
+            if expires_at and now > expires_at:
+                new_expires_at = expires_at + timedelta(hours=24)
+                doc.reference.update({
+                    "request_count": 1,
+                    "expires_at": new_expires_at
+                })
+                current_count = 0
+            else:
+                current_count = data.get("request_count", 0)
+                doc.reference.update({"request_count": firestore.Increment(1)})
             break
             
         if not doc_found:
@@ -50,8 +63,15 @@ class UserRequestManager:
     
     def get_user_request_count(self, email: str):
         docs = users_collection.where("email", "==", email).stream()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        
         for doc in docs:
-            return doc.to_dict().get("request_count", 0)
+            data = doc.to_dict()
+            expires_at = data.get("expires_at")
+            if expires_at and now > expires_at:
+                return 0
+            return data.get("request_count", 0)
         return 0
 
     def init_model_token_budgets(self):
@@ -109,6 +129,18 @@ class UserRequestManager:
             }
             
         return None
+
+    def get_all_model_budgets(self):
+        docs = model_token_budgets_collection.stream()
+        budgets = []
+        for doc in docs:
+            data = doc.to_dict()
+            budgets.append({
+                "model_name": data.get("model_name"),
+                "remaining_input_tokens": data.get("remaining_input_tokens", 0),
+                "remaining_output_tokens": data.get("remaining_output_tokens", 0)
+            })
+        return budgets
 
     def estimate_input_tokens(self, text: str, model_name: str) -> int:
         # Estimate the number of input tokens for a given string and model.
