@@ -1,5 +1,5 @@
 from datetime import timedelta
-from server.utils import get_la_start_of_day
+from utils.get_la_start_of_day import get_la_start_of_day
 import os
 from fastapi import Depends, HTTPException, status, Response
 from middleware.authMiddleware import verify_google_oauth_token
