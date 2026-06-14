@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 router = APIRouter()
 
 EXTENSION_NAME = "Resume Couturier AI"
-LAST_UPDATED = "May 17, 2026"
+LAST_UPDATED = "June 14, 2026"
 CONTACT_EMAIL = os.getenv("PRIVACY_CONTACT_EMAIL", "erbazkamran@gmail.com")
 API_HOST = os.getenv(
     "PRIVACY_API_HOST",
@@ -36,7 +36,7 @@ PRIVACY_POLICY_SECTIONS: list[dict[str, Any]] = [
             "<strong>Resume and career content (PII):</strong> Resume files you upload, parsed resume text, optional LaTeX templates, additional tailoring instructions, and generated PDFs and cover letters. This may include names, contact details, employment history, education, and similar information from your resume.",
             "<strong>Job listing content (website content):</strong> Text extracted from job postings on supported job-board sites (for example, job descriptions). We do not intentionally collect images, audio, or video from those pages.",
             "<strong>Preferences:</strong> Your selected Gemini model and similar settings stored locally in the Extension.",
-            "<strong>Usage data:</strong> A daily request count associated with your email address, stored in server memory for rate limiting (not in a user database).",
+            "<strong>Usage data:</strong> A daily request count associated with your email address, stored in a Google Cloud Firestore database for rate limiting. Each record is automatically deleted via Firestore's TTL (time-to-live) mechanism at midnight Los Angeles time.",
         ],
     },
     {
@@ -60,7 +60,7 @@ PRIVACY_POLICY_SECTIONS: list[dict[str, Any]] = [
         "title": "Data processed on our servers",
         "paragraphs": [
             f"When you use parse or generate features, resume and job-description content is transmitted over HTTPS to our API at <code>{escape(API_HOST)}</code>. We use it only to fulfill your request (for example, parsing a file or generating a tailored PDF). We do not store resume or job-description content in a database after the request completes.",
-            "The only user-related data we retain on the server is your Google account email address and a daily API request count, kept in short-lived in-memory cache (typically up to 24 hours) for rate limiting. We do not operate a persistent user profile database.",
+            "The only user-related data we retain on the server is your Google account email address and a daily API request count, stored in a Google Cloud Firestore database for rate limiting. Each record has a TTL (time-to-live) set to expire at midnight Los Angeles time, after which Firestore automatically deletes it. We do not operate a persistent user profile database.",
         ],
     },
     {
@@ -90,7 +90,7 @@ PRIVACY_POLICY_SECTIONS: list[dict[str, Any]] = [
         "title": "Retention",
         "paragraphs": [
             "Local Extension data remains until you delete it or uninstall the Extension.",
-            "Server-side rate-limit entries expire from memory when the cache TTL elapses or the server restarts.",
+            "Server-side rate-limit entries (email and request count) are stored in Google Cloud Firestore and are automatically deleted when their TTL expires at midnight Los Angeles time.",
             "Request payloads containing resume or job text are not intentionally retained after your API request finishes.",
         ],
     },
