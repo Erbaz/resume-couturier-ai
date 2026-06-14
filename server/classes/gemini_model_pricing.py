@@ -5,7 +5,8 @@ from constants.gemini_models import (
     GEMINI_3_1_FLASH_LITE_PREVIEW,
     GEMINI_3_FLASH_PREVIEW,
     GEMINI_2_5_FLASH,
-    GEMINI_2_5_FLASH_LITE
+    GEMINI_2_5_FLASH_LITE,
+    GEMINI_3_5_FLASH
 )
 
 load_dotenv()
@@ -34,6 +35,10 @@ class GeminiModelPricing:
     def __init__(self):
         """Initialize with all text-only Gemini 2.5+ models and their pricing."""
         self.models = {
+            GEMINI_3_5_FLASH: {
+                "input_tokens_per_1M_usd": 1.5,
+                "output_tokens_per_1M_usd": 9.00,
+            },
             GEMINI_3_1_PRO_PREVIEW: {
                 "input_tokens_per_1M_usd": 2.00,
                 "output_tokens_per_1M_usd": 12.00,

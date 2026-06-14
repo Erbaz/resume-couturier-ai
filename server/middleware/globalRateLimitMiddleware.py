@@ -13,8 +13,8 @@ async def global_rate_limit_middleware(request: Request, call_next):
         
         if should_block:
             return JSONResponse(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"detail": "Service is currently scaling down due to limit constraints."},
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={"detail": "Too Many Requests. Service limit constraints exceeded."},
                 headers={"Retry-After": "3600"}
             )
         print("[GLOBAL_LIMIT] Limits not exceeded, continuing...", flush=True)
