@@ -14,7 +14,7 @@ import os
 import dotenv
 import re
 import urllib.parse
-from constants.sys_prompt import SYS_PROMPT_FOR_LLM
+from constants.sys_prompt import SYS_PROMPT_FOR_LLM, ATS_EVALUATION_PROMPT
 from utils.cache_manager import user_request_manager
 from utils.google_auth import get_google_auth_token
 from utils.validations import validate_resume_generation_input
@@ -221,16 +221,10 @@ async def generate_resume(
     if not pdf_bytes:
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
 
-    missing_keywords_prompt = f"""
-    You are to perform ATS evaluation for the resume. Evaluate and identify the missing key words in the resume (provided as latex code) by comparing it with the job description.
-    You will only respond with a list of missing keywords as a comma separated list. Say nothing else.
-
-    resume:
-    {generated_latex}
-
-    job description:
-    {body.job_desc}
-    """
+    missing_keywords_prompt = ATS_EVALUATION_PROMPT.format(
+        resume_latex=generated_latex,
+        job_desc=body.job_desc
+    )
     missing_keywords_data = {
         "contents": [{"role": "user", "parts": [{"text": missing_keywords_prompt}]}],
         "generationConfig": {
